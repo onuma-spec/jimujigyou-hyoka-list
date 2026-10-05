@@ -217,6 +217,11 @@ body{font-family:"Meiryo","Hiragino Sans",sans-serif;background:#f3f4f6;color:#1
 .chip.active{background:#1e40af;color:#fff;border-color:#1e40af}
 .ctrls select,.ctrls input{padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;font-family:inherit;background:#fff}
 .ctrls input{flex:1;min-width:140px}
+.mine-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.mine-row .mine{margin-bottom:0;flex:1}
+.dl-btn{border:1px solid #d1d5db;background:#fff;border-radius:16px;padding:4px 11px;font-size:.76rem;cursor:pointer;font-family:inherit;color:#374151;white-space:nowrap}
+.dl-box{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin-bottom:8px}
+.dl-box.hidden{display:none}
 
 /* 一覧の行 */
 .row{padding:9px 12px;border-bottom:1px solid #f1f5f9}
@@ -374,7 +379,12 @@ function renderList() {
     <div class="top">
       ${headerHtml(`全${PROJECTS.length}事業　評価シートを確認して、👍（良い）か 👎（悪い）を押してください`)}
       <div class="panel">
-        <div class="mine" id="mine">${mineHtml()}</div>
+        <div class="mine-row"><div class="mine" id="mine">${mineHtml()}</div><button class="dl-btn" onclick="toggleDl()">📥 結果をダウンロード</button></div>
+        <div class="dl-box ${showDl ? '' : 'hidden'}" id="dl-box">
+          <button class="btn btn-o btn-sm" onclick="downloadResults('agg')">集計（事業ごと）CSV</button>
+          <button class="btn btn-o btn-sm" onclick="downloadResults('comments')">コメント一覧 CSV</button>
+          <span class="note">みんなの投票・コメントの、ダウンロードした時点の集計です（画面に表示しているのと同じ公開情報）。</span>
+        </div>
         <div class="ctrls">
           ${[['', 'すべて'], ['good', '👍'], ['bad', '👎'], ['none', '未評価'], ['comment', '💬あり']].map(([v, l]) =>
             `<button class="chip ${filter === v ? 'active' : ''}" onclick="setFilter('${v}')">${l}</button>`).join('')}
@@ -640,6 +650,73 @@ async function submitAll() {
 }
 
 // ── 通知（画面下部に一時表示） ───────────────────────
+// ── 結果のダウンロード（みんなの集計・コメント一覧のCSV） ─────────────
+// 共有の送信先を使う場合、評価ツールを作った人はスプレッドシートを見られないため、結果を持ち出す手段としてここで提供する
+let showDl = false;
+function toggleDl() {
+  showDl = !showDl;
+  const el = document.getElementById('dl-box');
+  if (el) el.classList.toggle('hidden', !showDl);
+}
+function csvCell(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function pad2(n) { return String(n).padStart(2, '0'); }
+function fmtTime(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+function downloadCsv(filename, rows) {
+  // Excelで文字化けしないよう、先頭にBOMを付けたUTF-8で書き出す
+  const text = String.fromCharCode(0xFEFF) + rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv' }));
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+async function downloadResults(kind) {
+  const btns = document.querySelectorAll('#dl-box button');
+  btns.forEach(b => { b.disabled = true; });
+  try {
+    // 最新の集計とコメントを取り直してから書き出す
+    const [ja, jc] = await Promise.all([
+      api({ action: 'agg', tool_id: TOOL_ID }),
+      api({ action: 'comment_list', tool_id: TOOL_ID })
+    ]);
+    agg = ja.agg || {};
+    const map = {};
+    (jc.comments || []).forEach(c => { (map[c.event_no] = map[c.event_no] || []).push(c); });
+    comments = map;
+    repaintCounts();
+    const now = new Date();
+    const day = `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}`;
+    const base = DATA.title.replace(/\s+/g, '_');
+    if (kind === 'agg') {
+      const rows = [['No', '事業名', '補足', '評価シートのファイル', 'ページ', '評価シートのURL', '良い（👍）', '悪い（👎）', 'コメント数']];
+      PROJECTS.forEach(p => {
+        const f = DATA.files[p.f] || {};
+        const a = aggOf(p.no);
+        rows.push([p.no, p.name || '', p.sub || '', f.name || '', p.page, sheetUrl(p), a.good, a.bad, commentCount(p.no)]);
+      });
+      downloadCsv(`${base}_集計_${day}.csv`, rows);
+      toast(`集計（${PROJECTS.length}事業）をダウンロードしました（${fmtTime(now)}時点）。`);
+    } else {
+      const rows = [['No', '事業名', '補足', 'コメント', '投稿日時']];
+      PROJECTS.forEach(p => (comments[p.no] || []).forEach(c => {
+        const d = new Date(c.submitted_at);
+        rows.push([p.no, p.name || '', p.sub || '', c.comment, isNaN(d) ? (c.submitted_at || '') : fmtTime(d)]);
+      }));
+      if (rows.length === 1) { toast('コメントはまだありません。'); return; }
+      downloadCsv(`${base}_コメント一覧_${day}.csv`, rows);
+      toast(`コメント一覧（${rows.length - 1}件）をダウンロードしました（${fmtTime(now)}時点）。`);
+    }
+  } catch (err) {
+    toast('結果を取得できませんでした：' + err.message, true);
+  } finally {
+    btns.forEach(b => { b.disabled = false; });
+  }
+}
+
 let toastTimer = null;
 function toast(text, isErr, ms) {
   const area = document.getElementById('toast-area');
