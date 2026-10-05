@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>令和7年度 湖西市 事務事業評価</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:"Meiryo","Hiragino Sans",sans-serif;background:#f3f4f6;color:#1f2937}
+/* 画面全体：上（見出し・操作）＋中（スクロールする枠）＋下（送信の帯） */
+.screen{max-width:860px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;padding:8px 8px 0}
+.top{flex-shrink:0}
+.scroll{flex:1;min-height:0;overflow-y:auto;background:#fff;border-radius:8px 8px 0 0;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.hd{background:#1e40af;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:8px}
+.hd h1{font-size:1rem;font-weight:700}
+.hd .sub{font-size:.76rem;opacity:.85;margin-top:2px}
+.panel{background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.note{font-size:.76rem;color:#6b7280;line-height:1.6}
+.btn{display:inline-block;padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:600;text-align:center;text-decoration:none;font-family:inherit}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:#1e40af;color:#fff}
+.btn-k{background:#16a34a;color:#fff}
+.btn-o{background:#fff;border:1px solid #d1d5db;color:#374151}
+.btn-sm{padding:5px 10px;font-size:.78rem}
+.btn-full{width:100%}
+
+/* 自分の集計・絞り込み */
+.mine{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:.82rem;margin-bottom:8px}
+.mine b{font-size:.95rem}
+.mine .pend{color:#b45309;font-weight:700}
+.ctrls{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{padding:5px 11px;border:1px solid #d1d5db;border-radius:16px;background:#fff;color:#374151;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit}
+.chip.active{background:#1e40af;color:#fff;border-color:#1e40af}
+.ctrls select,.ctrls input{padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;font-family:inherit;background:#fff}
+.ctrls input{flex:1;min-width:140px}
+
+/* 一覧の行 */
+.row{padding:9px 12px;border-bottom:1px solid #f1f5f9}
+.row.has-pend{background:#fffbeb}
+.row-name{display:flex;gap:8px;align-items:baseline;cursor:pointer}
+.row-name .no{font-size:.72rem;color:#9ca3af;flex-shrink:0;min-width:26px}
+.row-name .nm{font-size:.9rem;font-weight:600;color:#111827;line-height:1.4}
+.row-name:hover .nm{color:#1e40af;text-decoration:underline}
+.subtxt{display:inline-block;margin-left:8px;font-size:.72rem;font-weight:400;color:#6b7280}
+.detail-sub{font-size:.8rem;font-weight:400;color:#6b7280;margin-top:2px}
+.row-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 0 34px}
+.sheet{font-size:.76rem;color:#1e40af;text-decoration:none;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:3px 9px;white-space:nowrap}
+.vote{display:inline-flex;align-items:center;gap:5px;border:1px solid #d1d5db;background:#fff;border-radius:16px;padding:4px 11px;font-size:.82rem;cursor:pointer;font-family:inherit;color:#374151;white-space:nowrap}
+.vote .cnt{font-weight:700;min-width:1em}
+.vote.good.sel{background:#16a34a;border-color:#16a34a;color:#fff}
+.vote.bad.sel{background:#dc2626;border-color:#dc2626;color:#fff}
+.cmt{font-size:.8rem;color:#4b5563;cursor:pointer;white-space:nowrap;padding:3px 4px}
+.pend-tag{font-size:.68rem;color:#b45309;background:#fef3c7;border-radius:8px;padding:1px 7px;font-weight:700}
+.empty{padding:20px;text-align:center;color:#9ca3af;font-size:.85rem}
+
+/* 詳細 */
+.detail{padding:14px}
+.detail-nav{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.detail-nav .pos{font-size:.8rem;color:#6b7280}
+.detail-name{font-size:1.05rem;font-weight:700;color:#111827;line-height:1.5;margin-bottom:10px}
+.sheet-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:12px}
+.big-votes{display:flex;gap:10px;margin:6px 0 4px}
+.big-votes .vote{flex:1;justify-content:center;padding:12px;font-size:1rem;border-radius:10px;border-width:2px}
+.sec{font-size:.85rem;font-weight:700;color:#374151;margin:16px 0 6px}
+.comment-item{background:#f8f9fb;border:1px solid #eef0f2;border-radius:6px;padding:8px 10px;margin-bottom:6px}
+.comment-text{font-size:.84rem;color:#374151;white-space:pre-wrap;word-break:break-word;margin-bottom:4px;line-height:1.6}
+.comment-report-btn{background:none;border:none;color:#9ca3af;font-size:.7rem;cursor:pointer;padding:0;font-family:inherit}
+.comment-report-btn:hover{color:#dc2626}
+textarea{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:.88rem;font-family:inherit;resize:vertical}
+
+/* 下部の送信の帯（常に表示） */
+.sendbar{flex-shrink:0;background:#fff;border-top:2px solid #e5e7eb;padding:8px 12px calc(8px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 -2px 6px rgba(0,0,0,.06)}
+.sendbar.has-pend{border-top-color:#f59e0b;background:#fffbeb}
+.sendbar .msg{flex:1;min-width:180px;font-size:.8rem;line-height:1.5;color:#374151}
+.sendbar.has-pend .msg b{color:#b45309}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;max-width:min(560px,92vw);background:#1f2937;color:#fff;border-radius:8px;padding:10px 14px;font-size:.82rem;line-height:1.6;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:50;white-space:pre-wrap}
+.toast.err{background:#991b1b}
+.toast button{background:none;border:none;color:#fff;opacity:.8;margin-left:8px;cursor:pointer;font-size:.8rem}
+.foot{font-size:.7rem;color:#9ca3af;line-height:1.7;padding:12px}
+.foot a{color:#6b7280}
+@media (max-width:480px){.row-acts{margin-left:0}.hd h1{font-size:.92rem}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast-area"></div>
+<script>
+// このファイルは「事務事業評価 事業一覧ツール作成」で書き出したものです。
+// DATA を手で書き換えると、投票の集計がずれるおそれがあります。修正は作成ツールの「前回作ったHTMLから作り直す」から行ってください。
+const DATA = /*DATA_BEGIN*/{"v":2,"tool_id":"22221_2025_2qkzaw","title":"令和7年度 湖西市 事務事業評価","pref_code":"22","muni_code":"22221","muni_name":"湖西市","reiwa":"7","source_url":"https://www.city.kosai.shizuoka.jp/soshikiichiran/kikakuseisakuka/gyomuannai/5/2/17411.html","gas_url":"https://script.google.com/macros/s/AKfycbzvFrgq7y4ssqKzCMFWG8RF4OmheN9bcf4ttoHRP8nIw1L038h38VLJoEGqEuO1f9mD/exec","generated_at":"2026-10-05T12:19:20.429Z","files":[{"name":"2025jimujigyouhyouka.pdf","url":"https://www.city.kosai.shizuoka.jp/material/files/group/7/2025jimujigyouhyouka.pdf"}],"projects":[{"no":1,"name":"議会運営費","f":0,"page":18,"sub":"議会事務局・議会事務局"},{"no":2,"name":"庁舎維持管理費","f":0,"page":19,"sub":"企画部・資産経営課"},{"no":3,"name":"車両維持管理費","f":0,"page":20,"sub":"企画部・資産経営課"},{"no":4,"name":"文書・行政管理費","f":0,"page":21,"sub":"総務部・総務課"},{"no":5,"name":"人事・研修費","f":0,"page":22,"sub":"総務部・総務課"},{"no":6,"name":"広報推進事業","f":0,"page":23,"sub":"企画部・秘書広報課"},{"no":7,"name":"基金管理事務事業(財政調整基金)","f":0,"page":24,"sub":"総務部・財政課"},{"no":8,"name":"基金管理事務事業(公共施設整備基金)","f":0,"page":25,"sub":"総務部・財政課"},{"no":9,"name":"企画推進事業","f":0,"page":26,"sub":"企画部・企画政策課"},{"no":10,"name":"移住定住促進事業","f":0,"page":27,"sub":"企画部・企画政策課"},{"no":11,"name":"公共施設マネジメント推進事業","f":0,"page":28,"sub":"企画部・資産経営課"},{"no":12,"name":"会計事務費","f":0,"page":29,"sub":"課・会計課"},{"no":13,"name":"財産管理費","f":0,"page":30,"sub":"企画部・資産経営課"},{"no":14,"name":"交通安全推進事業","f":0,"page":31,"sub":"市民安全部・危機管理課"},{"no":15,"name":"防犯まちづくり事業","f":0,"page":32,"sub":"市民安全部・危機管理課"},{"no":16,"name":"電子市役所推進費","f":0,"page":33,"sub":"企画部・DX推進課"},{"no":17,"name":"自治会活動費","f":0,"page":34,"sub":"市民安全部・市民課"},{"no":18,"name":"多文化共生事業","f":0,"page":35,"sub":"市民安全部・市民課"},{"no":19,"name":"新居地域センター管理運営費","f":0,"page":36,"sub":"市民安全部・新居支所"},{"no":20,"name":"新庁舎建設事業","f":0,"page":37,"sub":"企画部・資産経営課"},{"no":21,"name":"市県民税課税業務","f":0,"page":38,"sub":"総務部・税務課"},{"no":22,"name":"固定資産税課税業務","f":0,"page":39,"sub":"総務部・税務課"},{"no":23,"name":"市税収納業務","f":0,"page":40,"sub":"総務部・税務課"},{"no":24,"name":"定額減税補足臨時給付金支援事業","f":0,"page":41,"sub":"総務部・税務課"},{"no":25,"name":"戸籍住民基本台帳事務","f":0,"page":42,"sub":"市民安全部・市民課"},{"no":26,"name":"静岡県知事選挙事務費","f":0,"page":43,"sub":"総務部・総務課"},{"no":27,"name":"衆議院議員選挙事務費","f":0,"page":44,"sub":"総務部・総務課"},{"no":28,"name":"社会福祉事務事業","f":0,"page":45,"sub":"健康福祉部・地域福祉課"},{"no":29,"name":"令和6年度非課税世帯給付金支給事業","f":0,"page":46,"sub":"健康福祉部・地域福祉課"},{"no":30,"name":"国民健康保険事業費","f":0,"page":47,"sub":"市民安全部・保険年金課"},{"no":31,"name":"介護保険事業特別会計繰出金","f":0,"page":48,"sub":"健康福祉部・高齢者福祉課"},{"no":32,"name":"重度障害者(児)医療費助成事業","f":0,"page":49,"sub":"健康福祉部・地域福祉課"},{"no":33,"name":"心身障害者福祉費","f":0,"page":50,"sub":"健康福祉部・地域福祉課"},{"no":34,"name":"浜名学園負担金","f":0,"page":51,"sub":"健康福祉部・地域福祉課"},{"no":35,"name":"地域生活支援関係経費","f":0,"page":52,"sub":"健康福祉部・地域福祉課"},{"no":36,"name":"介護・訓練等給付費","f":0,"page":53,"sub":"健康福祉部・地域福祉課"},{"no":37,"name":"自立支援医療費","f":0,"page":54,"sub":"健康福祉部・地域福祉課"},{"no":38,"name":"補装具給付費","f":0,"page":55,"sub":"健康福祉部・地域福祉課"},{"no":39,"name":"障害児通所給付費","f":0,"page":56,"sub":"健康福祉部・地域福祉課"},{"no":40,"name":"後期高齢者医療事業費","f":0,"page":57,"sub":"市民安全部・保険年金課"},{"no":41,"name":"後期高齢者健康診査事業","f":0,"page":58,"sub":"健康福祉部・健康増進課"},{"no":42,"name":"児童健全育成事業","f":0,"page":59,"sub":"こども未来部・こども政策課"},{"no":43,"name":"発達支援事業","f":0,"page":60,"sub":"こども未来部・こども未来課"},{"no":44,"name":"新居子育て支援センター運営事業","f":0,"page":61,"sub":"こども未来部・こども未来課"},{"no":45,"name":"児童手当支給事業費","f":0,"page":62,"sub":"こども未来部・こども政策課"},{"no":46,"name":"こども医療費助成事業","f":0,"page":63,"sub":"こども未来部・こども政策課"},{"no":47,"name":"放課後児童健全育成事業","f":0,"page":64,"sub":"教育委員会事務局・教育総務課"},{"no":48,"name":"児童扶養手当給付事業","f":0,"page":65,"sub":"こども未来部・こども政策課"},{"no":49,"name":"民間保育所等助成事業","f":0,"page":66,"sub":"こども未来部・保育幼稚園課"},{"no":50,"name":"公立保育所施設管理運営費","f":0,"page":67,"sub":"教育委員会事務局・教育総務課"},{"no":51,"name":"生活保護実施事業","f":0,"page":68,"sub":"健康福祉部・地域福祉課"},{"no":52,"name":"生活困窮者自立支援事業","f":0,"page":69,"sub":"健康福祉部・地域福祉課"},{"no":53,"name":"管理運営事業","f":0,"page":70,"sub":"健康福祉部・健康増進課"},{"no":54,"name":"健康福祉センター管理運営事業","f":0,"page":71,"sub":"健康福祉部・健康増進課"},{"no":55,"name":"母子保健事業","f":0,"page":72,"sub":"こども未来部・こども未来課"},{"no":56,"name":"出産・子育て応援事業","f":0,"page":73,"sub":"こども未来部・こども未来課"},{"no":57,"name":"小児等予防接種事業","f":0,"page":74,"sub":"こども未来部・こども未来課"},{"no":58,"name":"地域医療対策事業","f":0,"page":75,"sub":"健康福祉部・健康増進課"},{"no":59,"name":"疾病対策事業","f":0,"page":76,"sub":"健康福祉部・健康増進課"},{"no":60,"name":"斎場管理運営事業","f":0,"page":77,"sub":"環境部・環境課"},{"no":61,"name":"斎場整備事業","f":0,"page":78,"sub":"環境部・環境課"},{"no":62,"name":"合併処理浄化槽補助事業","f":0,"page":79,"sub":"環境部・廃棄物対策課"},{"no":63,"name":"廃棄物対策事業","f":0,"page":80,"sub":"環境部・廃棄物対策課"},{"no":64,"name":"ごみ処理施設管理運営事業","f":0,"page":81,"sub":"環境部・廃棄物対策課"},{"no":65,"name":"し尿処理施設管理運営事業","f":0,"page":82,"sub":"環境部・廃棄物対策課"},{"no":66,"name":"脱炭素推進事業","f":0,"page":83,"sub":"環境部・環境課"},{"no":67,"name":"花と緑のまちづくり推進事業","f":0,"page":84,"sub":"環境部・環境課"},{"no":68,"name":"湖西市立病院事業繰出金","f":0,"page":85,"sub":"健康福祉部・健康増進課"},{"no":69,"name":"勤労者定着促進事業","f":0,"page":86,"sub":"産業部・産業振興課"},{"no":70,"name":"高齢者能力活用支援事業","f":0,"page":87,"sub":"産業部・産業振興課"},{"no":71,"name":"技術・技能開発事業","f":0,"page":88,"sub":"産業部・産業振興課"},{"no":72,"name":"農業委員会運営事業","f":0,"page":89,"sub":"産業部・産業振興課"},{"no":73,"name":"農業振興推進事業","f":0,"page":90,"sub":"産業部・産業振興課"},{"no":74,"name":"畜産振興対策事業","f":0,"page":91,"sub":"産業部・産業振興課"},{"no":75,"name":"土地改良整備事業","f":0,"page":92,"sub":"産業部・産業振興課"},{"no":76,"name":"森林保護整備事業","f":0,"page":93,"sub":"産業部・産業振興課"},{"no":77,"name":"水産業振興事業","f":0,"page":94,"sub":"産業部・産業振興課"},{"no":78,"name":"商工業振興事業","f":0,"page":95,"sub":"産業部・産業振興課"},{"no":79,"name":"観光振興事業","f":0,"page":96,"sub":"産業部・文化観光課"},{"no":80,"name":"道の駅潮見坂管理運営事業","f":0,"page":97,"sub":"産業部・文化観光課"},{"no":81,"name":"新居今切体験の里管理運営事業","f":0,"page":98,"sub":"産業部・文化観光課"},{"no":82,"name":"ふるさと納税推進事業","f":0,"page":99,"sub":"産業部・文化観光課"},{"no":83,"name":"企業立地促進事業","f":0,"page":100,"sub":"産業部・産業振興課"},{"no":84,"name":"庶務及び管理費","f":0,"page":101,"sub":"都市整備部・土木課"},{"no":85,"name":"地元要望事業","f":0,"page":102,"sub":"都市整備部・土木課"},{"no":86,"name":"地籍調査事業","f":0,"page":103,"sub":"都市整備部・土木課"},{"no":87,"name":"道路維持補修事業","f":0,"page":104,"sub":"都市整備部・土木課"},{"no":88,"name":"新所原笠子線道路改良事業","f":0,"page":105,"sub":"都市整備部・都市政策課"},{"no":89,"name":"(都)大倉戸茶屋松線整備事業","f":0,"page":106,"sub":"都市整備部・土木課"},{"no":90,"name":"道路改良関係事務費","f":0,"page":107,"sub":"都市整備部・都市政策課"},{"no":91,"name":"河川・排水路維持補修事業","f":0,"page":108,"sub":"都市整備部・土木課"},{"no":92,"name":"河川整備関係経費","f":0,"page":109,"sub":"都市整備部・都市政策課"},{"no":93,"name":"地域公共交通対策事業","f":0,"page":110,"sub":"都市整備部・都市計画課"},{"no":94,"name":"天竜浜名湖鉄道対策事業","f":0,"page":111,"sub":"都市整備部・都市計画課"},{"no":95,"name":"都市計画関係事務費","f":0,"page":112,"sub":"都市整備部・都市計画課"},{"no":96,"name":"鷲津駅谷上線整備事業","f":0,"page":113,"sub":"都市整備部・都市政策課"},{"no":97,"name":"浜名弁天線整備事業","f":0,"page":114,"sub":"都市整備部・都市政策課"},{"no":98,"name":"表鷲津漁港線整備事業","f":0,"page":115,"sub":"都市整備部・都市政策課"},{"no":99,"name":"都市公園維持管理業務","f":0,"page":116,"sub":"都市整備部・土木課"},{"no":100,"name":"公園施設整備費","f":0,"page":117,"sub":"都市整備部・都市政策課"},{"no":101,"name":"組合土地区画整理事業事務費","f":0,"page":118,"sub":"都市整備部・都市計画課"},{"no":102,"name":"公共下水道整備事業","f":0,"page":119,"sub":"環境部・上下水道課"},{"no":103,"name":"市営住宅建設事業","f":0,"page":120,"sub":"都市整備部・建築住宅課"},{"no":104,"name":"港湾施設管理運営費","f":0,"page":121,"sub":"都市整備部・都市政策課"},{"no":105,"name":"消防団運営費","f":0,"page":122,"sub":"消防本部・消防総務課"},{"no":106,"name":"防災推進事業","f":0,"page":123,"sub":"市民安全部・危機管理課"},{"no":107,"name":"自主防災振興事業","f":0,"page":124,"sub":"市民安全部・危機管理課"},{"no":108,"name":"無線設備事業","f":0,"page":125,"sub":"市民安全部・危機管理課"},{"no":109,"name":"消防総務費","f":0,"page":126,"sub":"消防本部・消防総務課"},{"no":110,"name":"通信指令装置・消防救急無線整備事業","f":0,"page":127,"sub":"消防本部・警防課"},{"no":111,"name":"公用車維持管理費","f":0,"page":128,"sub":"消防本部・消防署"},{"no":112,"name":"会計年度任用職員雇用経費","f":0,"page":129,"sub":"教育委員会事務局・教育総務課"},{"no":113,"name":"学校教育運営事業","f":0,"page":130,"sub":"教育委員会事務局・学校教育課"},{"no":114,"name":"生きた英語教育推進事業","f":0,"page":131,"sub":"教育委員会事務局・学校教育課"},{"no":115,"name":"外国人児童生徒支援事業","f":0,"page":132,"sub":"教育委員会事務局・学校教育課"},{"no":116,"name":"特別支援教育推進事業","f":0,"page":133,"sub":"教育委員会事務局・学校教育課"},{"no":117,"name":"学校保健衛生費","f":0,"page":134,"sub":"教育委員会事務局・学校教育課"},{"no":118,"name":"特別支援教育推進事業(幼稚園)","f":0,"page":135,"sub":"こども未来部・保育幼稚園課"},{"no":119,"name":"学校給食推進事業","f":0,"page":136,"sub":"教育委員会事務局・教育総務課"},{"no":120,"name":"学校再編事業","f":0,"page":137,"sub":"教育委員会事務局・学校教育課"},{"no":121,"name":"学校給食施設整備事業","f":0,"page":138,"sub":"教育委員会事務局・教育総務課"},{"no":122,"name":"教育施設管理事業","f":0,"page":139,"sub":"教育委員会事務局・教育総務課"},{"no":123,"name":"鷲津小学校管理運営費","f":0,"page":140,"sub":"教育委員会事務局・教育総務課"},{"no":124,"name":"東小学校管理運営費","f":0,"page":141,"sub":"教育委員会事務局・教育総務課"},{"no":125,"name":"岡崎小学校管理運営費","f":0,"page":142,"sub":"教育委員会事務局・教育総務課"},{"no":126,"name":"新居小学校管理運営費","f":0,"page":143,"sub":"教育委員会事務局・教育総務課"},{"no":127,"name":"学校運営費(小学校)","f":0,"page":144,"sub":"教育委員会事務局・教育総務課"},{"no":128,"name":"小学校施設整備事業","f":0,"page":145,"sub":"教育委員会事務局・教育総務課"},{"no":129,"name":"鷲津中学校管理運営費","f":0,"page":146,"sub":"教育委員会事務局・教育総務課"},{"no":130,"name":"岡崎中学校管理運営費","f":0,"page":147,"sub":"教育委員会事務局・教育総務課"},{"no":131,"name":"新居中学校管理運営費","f":0,"page":148,"sub":"教育委員会事務局・教育総務課"},{"no":132,"name":"学校運営費(中学校)","f":0,"page":149,"sub":"教育委員会事務局・教育総務課"},{"no":133,"name":"中学校施設整備事業","f":0,"page":150,"sub":"教育委員会事務局・教育総務課"},{"no":134,"name":"岡崎幼稚園管理運営費","f":0,"page":151,"sub":"こども未来部・保育幼稚園課"},{"no":135,"name":"新居幼稚園管理運営費","f":0,"page":152,"sub":"こども未来部・保育幼稚園課"},{"no":136,"name":"幼稚園・こども園総務費","f":0,"page":153,"sub":"こども未来部・保育幼稚園課"},{"no":137,"name":"新居関所史料館管理運営費","f":0,"page":154,"sub":"産業部・文化観光課"},{"no":138,"name":"西部地域センター管理運営事業","f":0,"page":155,"sub":"教育委員会事務局・スポーツ・生涯学習課"},{"no":139,"name":"図書館運営事業","f":0,"page":156,"sub":"教育委員会・図書館"},{"no":140,"name":"図書館運営事業(新居図書館)","f":0,"page":157,"sub":"教育委員会・図書館"},{"no":141,"name":"社会体育施設維持管理事業","f":0,"page":158,"sub":"教育委員会事務局・スポーツ・生涯学習課"},{"no":142,"name":"スポーツ活動推進及び大会運営事業","f":0,"page":159,"sub":"教育委員会事務局・スポーツ・生涯学習課"}],"next_no":143}/*DATA_END*/;
+
+const GAS_URL = DATA.gas_url;
+const TOOL_ID = DATA.tool_id;
+const COMMENT_MAX_LENGTH = 500;
+const RATE_CHUNK = 150;
+const COMMENT_PII_PATTERNS = [
+  { test: /0\d{1,4}-\d{1,4}-\d{3,4}/, label: '電話番号らしき数字列' },
+  { test: /[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}/, label: 'メールアドレスらしき文字列' },
+  { test: /https?:\/\/\S+/, label: 'URL' },
+  { test: /(私|僕|自分)の名前は|本名は/, label: '氏名を明示する表現' }
+];
+function findCommentPii(text) {
+  for (const p of COMMENT_PII_PATTERNS) { if (p.test.test(text)) return p.label; }
+  return null;
+}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── この端末に保存するもの ─────────────────────────
+const LS = 'gyosei_list_' + TOOL_ID + '_';
+function lsGet(k, def) { try { const v = JSON.parse(localStorage.getItem(LS + k)); return v == null ? def : v; } catch (e) { return def; } }
+function lsSet(k, v) { try { localStorage.setItem(LS + k, JSON.stringify(v)); } catch (e) {} }
+function randomId(len) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const buf = new Uint8Array(len);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, b => chars[b % chars.length]).join('');
+}
+// 端末ごとのランダムな識別番号。同じ端末から同じ事業に送り直すと、集計では最新の評価だけが数えられる
+let VOTER_ID = lsGet('voter', '');
+if (!/^[0-9a-z]{8,40}$/.test(VOTER_ID)) { VOTER_ID = randomId(16); lsSet('voter', VOTER_ID); }
+
+let ratings = lsGet('ratings', {});   // 事業No -> 'good' | 'bad'（自分の現在の評価）
+let sent = lsGet('sent', {});         // 事業No -> 'good' | 'bad' | 'none'（最後に送信した評価）
+let drafts = lsGet('drafts', {});     // 事業No -> 未送信のコメント
+let hintShown = lsGet('hint', false);
+
+const PROJECTS = DATA.projects;       // 表示順（ファイル順→ページ順）。no は投票の識別番号
+const BY_NO = {};
+PROJECTS.forEach((p, i) => { BY_NO[p.no] = p; p.idx = i; });
+
+let agg = null;        // 事業No -> {good, bad}（みんなの集計。送信済みの分）
+let comments = null;   // 事業No -> [{id, comment}]
+let screen = 'list', curNo = null;
+let filter = '', sortKey = 'page', searchText = '';
+let listScroll = 0, sending = false;
+
+function projLabel(p) { return p.name ? p.name : `事業 No.${p.no}`; }
+function sheetUrl(p) { const f = DATA.files[p.f]; return f && f.url ? f.url + '#page=' + p.page : ''; }
+function pageLabel(p) { const f = DATA.files[p.f]; return (DATA.files.length > 1 && f ? f.name + ' ' : '') + 'p.' + p.page; }
+function aggOf(no) { return (agg && agg[no]) || { good: 0, bad: 0 }; }
+function commentCount(no) { return comments && comments[no] ? comments[no].length : 0; }
+
+// 未送信：現在の評価と最後に送った評価が違う事業、または書きかけのコメントがある事業
+function ratingPending(no) { return (ratings[no] || 'none') !== (sent[no] || 'none'); }
+function pendingRatingNos() { return PROJECTS.filter(p => ratingPending(p.no)).map(p => p.no); }
+function pendingCommentNos() { return PROJECTS.filter(p => drafts[p.no] && drafts[p.no].trim()).map(p => p.no); }
+
+// ========================================================================
+// 画面
+// ========================================================================
+function headerHtml(sub) {
+  return `<div class="hd"><h1>${esc(DATA.title)}</h1><div class="sub">${esc(sub)}</div></div>`;
+}
+function footHtml() {
+  return `<div class="foot">
+    ${DATA.source_url ? `<p><strong>出典：</strong><a href="${esc(DATA.source_url)}" target="_blank" rel="noopener" style="overflow-wrap:anywhere">${esc(DATA.source_url)}</a></p>` : ''}
+    <p>評価の判断材料は、自治体が公表している評価シートです。本ツールは事業の一覧と投票の機能だけを提供しています。</p>
+    <p>評価とコメントは、送信するまでこの端末にだけ保存されます。送信した評価は、あとから変更できます（送信したコメントは修正・削除できません）。</p>
+    <p>この評価ツールは、<a href="https://onuma-spec.github.io/jimujigyou-hyoka-list/" target="_blank" rel="noopener">事務事業評価 事業一覧ツール作成</a>で作成しました。どなたでも、ほかの自治体の評価ツールを作れます。</p>
+    <p>本ツールは、Claude（AI）を用いて作成しています。　ツールのライセンス：MIT</p>
+  </div>`;
+}
+
+function sendbarHtml() {
+  const r = pendingRatingNos().length, c = pendingCommentNos().length;
+  const n = r + c;
+  if (sending) return `<div class="sendbar has-pend" id="sendbar"><div class="msg">送信しています…</div><button class="btn btn-k" disabled>送信中…</button></div>`;
+  return `<div class="sendbar ${n ? 'has-pend' : ''}" id="sendbar">
+    <div class="msg">${n
+      ? `⚠ <b>未送信が${n}件</b>あります（評価${r}件・コメント${c}件）。<br>途中でも送信できます。送信した評価は、あとから変更できます。`
+      : (Object.keys(ratings).length ? '✓ 評価はすべて送信済みです。' : '👍／👎 を押して評価し、最後にここから送信してください。')}</div>
+    <button class="btn btn-k" ${n ? '' : 'disabled'} onclick="submitAll()">📤 まとめて送信する</button>
+  </div>`;
+}
+function refreshSendbar() {
+  const el = document.getElementById('sendbar');
+  if (el) el.outerHTML = sendbarHtml();
+}
+
+// ── 一覧（まとめを兼ねる） ───────────────────────────
+function renderList() {
+  screen = 'list';
+  document.getElementById('app').innerHTML = `<div class="screen">
+    <div class="top">
+      ${headerHtml(`全${PROJECTS.length}事業　評価シートを確認して、👍（良い）か 👎（悪い）を押してください`)}
+      <div class="panel">
+        <div class="mine" id="mine">${mineHtml()}</div>
+        <div class="ctrls">
+          ${[['', 'すべて'], ['good', '👍'], ['bad', '👎'], ['none', '未評価'], ['comment', '💬あり']].map(([v, l]) =>
+            `<button class="chip ${filter === v ? 'active' : ''}" onclick="setFilter('${v}')">${l}</button>`).join('')}
+          <select onchange="sortKey=this.value; renderRows(true)">
+            ${[['page', 'ページ順'], ['good', '👍が多い順'], ['bad', '👎が多い順'], ['comment', 'コメントが多い順']].map(([v, l]) =>
+              `<option value="${v}" ${sortKey === v ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+          <input type="search" placeholder="事業名・補足で絞り込み" value="${esc(searchText)}" oninput="searchText=this.value; renderRows(true)">
+        </div>
+      </div>
+    </div>
+    <div class="scroll" id="list-scroll"><div id="rows"></div>${footHtml()}</div>
+    ${sendbarHtml()}
+  </div>`;
+  renderRows(false);
+  document.getElementById('list-scroll').scrollTop = listScroll;
+}
+
+function mineHtml() {
+  let good = 0, bad = 0;
+  PROJECTS.forEach(p => { if (ratings[p.no] === 'good') good++; else if (ratings[p.no] === 'bad') bad++; });
+  const pend = pendingRatingNos().length + pendingCommentNos().length;
+  return `<span>自分の評価：</span><span>👍 <b>${good}</b></span><span>👎 <b>${bad}</b></span><span>未評価 <b>${PROJECTS.length - good - bad}</b></span>${pend ? `<span class="pend">未送信 ${pend}件</span>` : ''}`;
+}
+
+function setFilter(v) {
+  filter = v;
+  document.querySelectorAll('.chip').forEach((b, i) => b.classList.toggle('active', ['', 'good', 'bad', 'none', 'comment'][i] === v));
+  renderRows(true);
+}
+
+function visibleProjects() {
+  const q = searchText.trim();
+  let list = PROJECTS.filter(p => {
+    if (q && !((p.name || '') + ' ' + (p.sub || '')).includes(q)) return false;
+    if (filter === 'good' || filter === 'bad') return ratings[p.no] === filter;
+    if (filter === 'none') return !ratings[p.no];
+    if (filter === 'comment') return commentCount(p.no) > 0;
+    return true;
+  });
+  if (sortKey === 'good') list = list.slice().sort((a, b) => aggOf(b.no).good - aggOf(a.no).good || a.idx - b.idx);
+  else if (sortKey === 'bad') list = list.slice().sort((a, b) => aggOf(b.no).bad - aggOf(a.no).bad || a.idx - b.idx);
+  else if (sortKey === 'comment') list = list.slice().sort((a, b) => commentCount(b.no) - commentCount(a.no) || a.idx - b.idx);
+  return list;
+}
+
+function rowHtml(p) {
+  const a = aggOf(p.no), mine = ratings[p.no] || '';
+  const url = sheetUrl(p);
+  const pend = ratingPending(p.no) || !!(drafts[p.no] && drafts[p.no].trim());
+  return `<div class="row ${pend ? 'has-pend' : ''}" id="row-${p.no}">
+    <div class="row-name" onclick="openProject(${p.no})"><span class="no">${p.no}</span><span class="nm">${esc(projLabel(p))}${p.sub ? `<span class="subtxt">${esc(p.sub)}</span>` : ''}</span></div>
+    <div class="row-acts">
+      ${url ? `<a class="sheet" href="${esc(url)}" target="_blank" rel="noopener">📄 評価シート ${esc(pageLabel(p))}</a>` : `<span class="sheet">📄 ${esc(pageLabel(p))}</span>`}
+      <button class="vote good ${mine === 'good' ? 'sel' : ''}" onclick="rate(${p.no}, 'good')" title="良い">👍 <span class="cnt">${agg ? a.good : '-'}</span></button>
+      <button class="vote bad ${mine === 'bad' ? 'sel' : ''}" onclick="rate(${p.no}, 'bad')" title="悪い">👎 <span class="cnt">${agg ? a.bad : '-'}</span></button>
+      <span class="cmt" onclick="openProject(${p.no})">💬 ${comments ? commentCount(p.no) : '-'}</span>
+      ${pend ? '<span class="pend-tag">未送信</span>' : ''}
+    </div>
+  </div>`;
+}
+
+function renderRows(resetScroll) {
+  const el = document.getElementById('rows');
+  if (!el) return;
+  const list = visibleProjects();
+  el.innerHTML = list.length ? list.map(rowHtml).join('') : '<div class="empty">該当する事業がありません。</div>';
+  if (resetScroll) document.getElementById('list-scroll').scrollTop = 0;
+}
+
+// 1行だけ・上部の集計・送信の帯だけを書き換える（一覧のスクロール位置を保つため）
+function refreshAfterChange(no) {
+  const row = document.getElementById('row-' + no);
+  if (row) row.outerHTML = rowHtml(BY_NO[no]);
+  const mine = document.getElementById('mine');
+  if (mine) mine.innerHTML = mineHtml();
+  if (screen === 'detail') refreshDetailVotes();
+  refreshSendbar();
+}
+
+// ── 評価 ─────────────────────────────────────────
+function rate(no, r) {
+  if (ratings[no] === r) delete ratings[no]; else ratings[no] = r;
+  lsSet('ratings', ratings);
+  refreshAfterChange(no);
+  if (!hintShown) {
+    hintShown = true;
+    lsSet('hint', true);
+    toast('評価はこの端末に保存されました。\n最後に画面下の「📤 まとめて送信する」を押してください（途中でも送信でき、送信した評価はあとから変更できます）。', false, 9000);
+  }
+}
+
+// ── 詳細 ─────────────────────────────────────────
+function openProject(no) {
+  const box = document.getElementById('list-scroll');
+  if (box) listScroll = box.scrollTop;
+  curNo = no;
+  renderDetail();
+}
+function backToList() { renderList(); }
+
+function renderDetail() {
+  screen = 'detail';
+  const p = BY_NO[curNo];
+  const prev = PROJECTS[p.idx - 1], next = PROJECTS[p.idx + 1];
+  const url = sheetUrl(p);
+  document.getElementById('app').innerHTML = `<div class="screen">
+    <div class="top">${headerHtml('事業の評価')}</div>
+    <div class="scroll" id="detail-scroll"><div class="detail">
+      <div class="detail-nav">
+        <button class="btn btn-o btn-sm" onclick="backToList()">← 一覧に戻る</button>
+        <span class="pos">${p.idx + 1} / ${PROJECTS.length}</span>
+        <span>
+          <button class="btn btn-o btn-sm" ${prev ? `onclick="openProject(${prev.no})"` : 'disabled'}>← 前</button>
+          <button class="btn btn-o btn-sm" ${next ? `onclick="openProject(${next.no})"` : 'disabled'}>次 →</button>
+        </span>
+      </div>
+      <div class="detail-name">No.${p.no}　${esc(projLabel(p))}${p.sub ? `<div class="detail-sub">${esc(p.sub)}</div>` : ''}</div>
+      <div class="sheet-box">
+        ${url
+          ? `<a class="btn btn-p btn-full" href="${esc(url)}" target="_blank" rel="noopener">📄 評価シートを開く（${esc(pageLabel(p))}）</a>
+             <p class="note" style="margin-top:6px">スマートフォンなどでは指定のページではなく1ページ目が開くことがあります。その場合は p.${p.page} まで移動してください。</p>`
+          : `<p class="note">評価シートへのリンクは設定されていません。${DATA.source_url ? '出典ページから評価シートを開き、' : ''}${esc(pageLabel(p))} をご覧ください。</p>`}
+      </div>
+
+      <div class="sec">この事業の評価</div>
+      <div class="big-votes" id="big-votes">${bigVotesHtml(p)}</div>
+
+      <div class="sec">みんなのコメント（<span id="cmt-count">${comments ? commentCount(p.no) : '-'}</span>件）</div>
+      <div id="comment-list">${commentListHtml(p.no)}</div>
+
+      <div class="sec">自分のコメント（任意）</div>
+      <textarea rows="4" maxlength="${COMMENT_MAX_LENGTH}" placeholder="評価の理由や、良い点・悪い点などを自由に書いてください" oninput="saveDraft(${p.no}, this.value)">${esc(drafts[p.no] || '')}</textarea>
+      <p class="note">コメントは、画面下の「まとめて送信する」で評価と一緒に送信されます。送信したコメントは修正・削除できません。電話番号・メールアドレス・URL・氏名は書かないでください。</p>
+      ${next ? `<button class="btn btn-o btn-full" style="margin-top:14px" onclick="openProject(${next.no})">次の事業へ →</button>` : ''}
+    </div>${footHtml()}</div>
+    ${sendbarHtml()}
+  </div>`;
+}
+function bigVotesHtml(p) {
+  const a = aggOf(p.no), mine = ratings[p.no] || '';
+  return `<button class="vote good ${mine === 'good' ? 'sel' : ''}" onclick="rate(${p.no}, 'good')">👍 良い <span class="cnt">${agg ? a.good : '-'}</span></button>
+    <button class="vote bad ${mine === 'bad' ? 'sel' : ''}" onclick="rate(${p.no}, 'bad')">👎 悪い <span class="cnt">${agg ? a.bad : '-'}</span></button>`;
+}
+function refreshDetailVotes() {
+  const el = document.getElementById('big-votes');
+  if (el) el.innerHTML = bigVotesHtml(BY_NO[curNo]);
+}
+function saveDraft(no, text) {
+  const had = !!(drafts[no] && drafts[no].trim());
+  if (text.trim()) drafts[no] = text; else delete drafts[no];
+  lsSet('drafts', drafts);
+  if (had !== !!text.trim()) refreshSendbar();
+}
+
+function commentListHtml(no) {
+  if (!comments) return '<p class="note">読み込み中...</p>';
+  const list = comments[no] || [];
+  if (!list.length) return '<p class="note">まだコメントがありません。</p>';
+  return list.map(c => `<div class="comment-item">
+      <p class="comment-text">${esc(c.comment)}</p>
+      <button class="comment-report-btn" onclick="reportComment(${Number(c.id)})">🚩 不適切として報告する</button>
+    </div>`).join('');
+}
+
+// ========================================================================
+// 通信
+// ========================================================================
+async function api(params) {
+  const qs = Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+  const res = await fetch(GAS_URL + '?' + qs);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || '送信に失敗しました');
+  return json;
+}
+
+async function loadAgg() {
+  try { agg = (await api({ action: 'agg', tool_id: TOOL_ID })).agg || {}; }
+  catch (e) { /* 取得に失敗しても画面は壊さない */ }
+  repaintCounts();
+}
+async function loadComments() {
+  try {
+    const json = await api({ action: 'comment_list', tool_id: TOOL_ID });
+    const map = {};
+    (json.comments || []).forEach(c => { (map[c.event_no] = map[c.event_no] || []).push(c); });
+    comments = map;
+  } catch (e) { comments = comments || {}; }
+  repaintCounts();
+}
+// 件数が届いたら、今の画面の件数表示を更新する（スクロール位置は保つ）
+function repaintCounts() {
+  if (screen === 'list') {
+    const box = document.getElementById('list-scroll');
+    const top = box ? box.scrollTop : 0;
+    renderRows(false);
+    if (box) box.scrollTop = top;
+  } else if (screen === 'detail') {
+    // 入力中のコメント欄を消さないよう、件数とコメント一覧の部分だけを書き換える
+    refreshDetailVotes();
+    const list = document.getElementById('comment-list');
+    if (list) list.innerHTML = commentListHtml(curNo);
+    const cnt = document.getElementById('cmt-count');
+    if (cnt) cnt.textContent = comments ? commentCount(curNo) : '-';
+  }
+}
+
+async function reportComment(id) {
+  if (!confirm('このコメントを不適切として報告しますか？')) return;
+  try { await api({ action: 'comment_report', tool_id: TOOL_ID, comment_id: id }); toast('報告しました。'); }
+  catch (err) { toast('送信できませんでした：' + err.message, true); }
+}
+
+async function submitAll() {
+  if (sending) return;
+  const rNos = pendingRatingNos();
+  const cNos = pendingCommentNos();
+  const skipped = [];
+  const okComments = [];
+  cNos.forEach(no => {
+    const text = drafts[no].trim();
+    const pii = findCommentPii(text);
+    if (pii) skipped.push(`No.${no}：${pii}が含まれている可能性があるため送信しませんでした`);
+    else if (text.length > COMMENT_MAX_LENGTH) skipped.push(`No.${no}：${COMMENT_MAX_LENGTH}文字を超えています`);
+    else okComments.push([no, text]);
+  });
+  if (!rNos.length && !okComments.length) { toast('送信できるものがありません。\n' + skipped.join('\n'), true, 9000); return; }
+
+  sending = true;
+  refreshSendbar();
+  let sentR = 0, sentC = 0, failed = '';
+  try {
+    for (let i = 0; i < rNos.length; i += RATE_CHUNK) {
+      const chunk = rNos.slice(i, i + RATE_CHUNK).map(no => [no, ratings[no] || 'none']);
+      await api({ action: 'rate', tool_id: TOOL_ID, voter_id: VOTER_ID, rows: JSON.stringify(chunk) });
+      chunk.forEach(([no, r]) => { sent[no] = r; });
+      lsSet('sent', sent);
+      sentR += chunk.length;
+    }
+    for (const [no, text] of okComments) {
+      try {
+        await api({ action: 'comment', tool_id: TOOL_ID, event_no: no, comment: text });
+        delete drafts[no];
+        lsSet('drafts', drafts);
+        sentC++;
+      } catch (err) {
+        skipped.push(`No.${no}：${err.message === 'pii detected' ? '個人情報らしき文字が含まれているため送信できませんでした' : '送信エラー（' + err.message + '）'}`);
+      }
+    }
+  } catch (err) {
+    failed = err.message;
+  }
+  sending = false;
+
+  let msg = failed
+    ? `送信中にエラーが発生しました（${failed}）。\n送信できたのは評価${sentR}件・コメント${sentC}件です。時間をおいて、もう一度「まとめて送信する」を押してください。`
+    : `送信しました（評価${sentR}件・コメント${sentC}件）。ありがとうございました。`;
+  if (skipped.length) msg += '\n\n送信しなかったコメント：\n' + skipped.join('\n');
+  toast(msg, !!failed || skipped.length > 0, 9000);
+  if (screen === 'detail') renderDetail(); else renderList();
+  loadAgg();
+  loadComments();
+}
+
+// ── 通知（画面下部に一時表示） ───────────────────────
+let toastTimer = null;
+function toast(text, isErr, ms) {
+  const area = document.getElementById('toast-area');
+  area.innerHTML = `<div class="toast ${isErr ? 'err' : ''}">${esc(text)}<button onclick="this.parentNode.remove()">✕ 閉じる</button></div>`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { area.innerHTML = ''; }, ms || 4000);
+}
+
+// 未送信のまま閉じようとしたら確認する
+window.addEventListener('beforeunload', e => {
+  if (pendingRatingNos().length || pendingCommentNos().length) { e.preventDefault(); e.returnValue = ''; }
+});
+
+renderList();
+loadAgg();
+loadComments();
+</script>
+</body>
+</html>

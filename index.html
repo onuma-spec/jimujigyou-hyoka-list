@@ -1,0 +1,2372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>事務事業評価 事業一覧ツール作成</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Meiryo","Hiragino Sans",sans-serif;background:#f3f4f6;color:#1f2937;min-height:100vh}
+#app{max-width:860px;margin:0 auto;padding:12px}
+#app.wide{max-width:1500px}
+
+.hd{background:#1e40af;color:#fff;padding:14px 16px;border-radius:8px;margin-bottom:12px}
+.hd h1{font-size:1.1rem;font-weight:700}
+.hd .sub{font-size:.8rem;opacity:.85;margin-top:3px}
+
+.card{background:#fff;border-radius:8px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.card h2{font-size:1rem;font-weight:700;margin-bottom:10px;color:#111827}
+.card h3{font-size:.88rem;font-weight:700;margin:10px 0 6px;color:#374151}
+.card p{font-size:.85rem;line-height:1.7;color:#374151;margin-bottom:6px}
+.note{font-size:.78rem;color:#6b7280;line-height:1.6}
+.warn{font-size:.8rem;color:#b91c1c;line-height:1.6}
+
+.btn{display:inline-block;padding:9px 18px;border:none;border-radius:6px;cursor:pointer;font-size:.9rem;font-weight:600;transition:opacity .15s;text-align:center;text-decoration:none}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:#1e40af;color:#fff}
+.btn-k{background:#22c55e;color:#fff}
+.btn-h{background:#ef4444;color:#fff}
+.btn-f{background:#f59e0b;color:#fff}
+.btn-o{background:#fff;border:1px solid #d1d5db;color:#374151}
+.btn-sm{padding:6px 12px;font-size:.8rem}
+.btn-full{width:100%;margin-bottom:8px}
+.bbtns{display:flex;gap:8px;flex-wrap:wrap}
+
+label{display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:4px}
+select,input[type=text],input[type=url],textarea{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:.88rem;font-family:inherit;margin-bottom:10px}
+textarea{resize:vertical}
+.field{margin-bottom:4px}
+.preview-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px;font-size:.8rem;color:#1e3a8a;margin:10px 0;line-height:1.7}
+.preview-box b{word-break:break-all}
+.warn-box{background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:10px;font-size:.8rem;color:#991b1b;margin:10px 0;line-height:1.7}
+.guide-steps{font-size:.84rem;line-height:1.8;color:#374151;margin:8px 0 14px 18px}
+.guide-steps li{margin-bottom:8px}
+.guide-steps code{background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:.78rem}
+
+/* ファイル一覧 */
+.file-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;border:1px solid #e5e7eb;border-radius:6px;padding:8px;margin-bottom:6px}
+.file-row.active{border-color:#1e40af;background:#eff6ff}
+.file-row .fname{flex:1;min-width:160px;font-size:.82rem;font-weight:600;word-break:break-all}
+.file-row .fname small{font-weight:400;color:#6b7280}
+.file-row .url-line{flex-basis:100%;display:flex;gap:6px;align-items:center;margin-top:4px}
+.file-row .url-line input{flex:1;margin:0}
+.order-btns{display:inline-flex;gap:2px;flex-shrink:0}
+.order-btns .btn{padding:3px 7px}
+.bulk-url{margin-top:10px}
+.bulk-url summary{cursor:pointer;font-size:.82rem;color:#1e40af;font-weight:600}
+.bulk-url textarea{margin-top:6px}
+
+
+/* 投票データの送信先 */
+label.radio{display:flex;gap:6px;align-items:center;font-size:.86rem;font-weight:400;margin:8px 0 2px;cursor:pointer}
+.indent{margin-left:22px}
+.dest-steps{border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin:8px 0 0 22px;background:#fafafa}
+.dest-steps .guide-steps{margin-left:16px}
+.dest-steps input[type=url]{margin:6px 0}
+
+/* 開始ページを探す：補助の方法 */
+.alt-box{border-top:1px dashed #e5e7eb;margin-top:12px;padding-top:10px}
+.method{border:1px solid #e5e7eb;border-radius:8px;padding:12px;margin:8px 0}
+.method-title{font-size:.88rem;font-weight:700;color:#111827;margin-bottom:4px}
+
+/* 画面内メッセージ・処理中表示 */
+.msg{border-radius:6px;padding:10px 12px;font-size:.82rem;line-height:1.7;margin:10px 0;word-break:break-word}
+.msg-ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+.msg-info{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.msg-error{background:#fef2f2;border:2px solid #f87171;color:#991b1b;font-weight:600}
+.btn-busy{display:inline-flex;align-items:center;justify-content:center;gap:8px;opacity:1 !important;cursor:progress !important}
+.spinner{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* 一覧の下の案内 */
+.next-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-top:12px}
+.next-box h3{margin-top:0}
+.next-item{border-bottom:1px solid #e5e7eb;padding:8px 0}
+.next-item:last-of-type{border-bottom:none}
+.next-q{font-size:.85rem;font-weight:700;color:#111827;margin-bottom:4px}
+.dup-box{border:1px solid #fecaca;background:#fffafa;border-radius:8px;padding:12px;margin:8px 0}
+.dup-hd{font-size:.85rem;font-weight:700;color:#991b1b;margin-bottom:4px}
+.dup-list{font-size:.82rem;line-height:1.8;margin:6px 0 10px 18px}
+
+/* 事業一覧 */
+.proj-tbl{width:100%;border-collapse:collapse;font-size:.78rem}
+.proj-tbl th{text-align:left;font-weight:600;color:#6b7280;font-size:.7rem;padding:5px 6px;border-bottom:1px solid #e5e7eb;position:sticky;top:50px;background:#fff;z-index:1}
+.proj-tbl td{padding:5px 6px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+.proj-tbl input[type=text]{margin:0;padding:4px 6px;font-size:.78rem}
+.proj-tbl td.c-no{color:#6b7280;width:34px}
+.proj-tbl td.c-file{color:#6b7280;width:36px}
+.proj-tbl td.c-page{width:34px;text-align:center}
+.proj-tbl tr.dup td{background:#fef2f2}
+.proj-tbl tr.cur td,.list-box .proj-tbl tbody tr.cur:hover td{background:#dbeafe}
+.proj-tbl tr.flash td{animation:flash 1.6s}
+@keyframes flash{from{background:#fde68a}}
+.note-list{font-size:.78rem;color:#6b7280;line-height:1.6;margin:0 0 8px 18px}
+
+/* 上部の帯（常に表示） */
+.stepnav{position:sticky;top:0;z-index:30;display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#1e3a8a;padding:6px 8px;border-radius:0 0 8px 8px;margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.stepnav button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:16px;padding:5px 12px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit}
+.stepnav button:hover{background:rgba(255,255,255,.25)}
+.stepnav button.done{background:rgba(34,197,94,.28);border-color:rgba(134,239,172,.7)}
+.stepnav button.cur{background:#fff;color:#1e3a8a;border-color:#fff}
+.goal-seg{display:inline}
+.goal-num{display:inline-block;background:rgba(255,255,255,.22);border-radius:8px;padding:0 6px;margin:0 3px 0 2px;font-weight:700;font-size:.74rem}
+.done-card h2{color:#166534}
+.done-tbl{border-collapse:collapse;font-size:.85rem;margin-bottom:10px;width:100%}
+.done-tbl th{text-align:left;font-weight:600;color:#6b7280;padding:5px 12px 5px 0;white-space:nowrap;vertical-align:top;width:1%}
+.done-tbl td{padding:5px 0;word-break:break-all}
+.done-btns{display:flex;gap:8px;flex-wrap:wrap}
+.purpose{background:#eef2ff;border-left:4px solid #1e40af;border-radius:4px;padding:7px 10px;font-size:.82rem;color:#1e3a8a;line-height:1.6;margin:-2px 0 12px}
+.nav-busy{display:inline-flex;align-items:center;gap:6px;color:#fde68a;font-size:.8rem;margin-left:auto}
+.card,.msg,#dups-anchor,#side{scroll-margin-top:58px}
+
+/* 2列レイアウト：左＝作業欄、右＝確認欄（固定） */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+.side{position:sticky;top:54px}
+.side-wrap{display:grid;gap:8px;height:calc(100vh - 66px)}
+.side-card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.1);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.side-list-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:.82rem}
+.ratio-btns{display:inline-flex;margin-left:auto;border:1px solid #d1d5db;border-radius:6px;overflow:hidden}
+.ratio-btns button{border:none;background:#fff;padding:3px 8px;font-size:.72rem;cursor:pointer;font-family:inherit;color:#374151}
+.ratio-btns button+button{border-left:1px solid #d1d5db}
+.ratio-btns button.active{background:#1e40af;color:#fff}
+.list-box{flex:1;overflow:auto;min-height:0}
+.list-box .proj-tbl th{top:0}
+.list-box .proj-tbl tbody tr{cursor:pointer}
+.list-box .proj-tbl tbody tr:hover td{background:#f1f5f9}
+.list-box .proj-tbl td.c-del{width:1%;white-space:nowrap}
+.list-box .proj-tbl td.c-sub{width:30%}
+.list-box .proj-tbl td.c-del .btn{padding:4px 8px;white-space:nowrap}
+.proj-tbl th{white-space:nowrap}
+.side-hd{display:flex;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #e5e7eb}
+.side-hd select{margin:0;flex:1;min-width:0}
+.side-fname{flex:1;min-width:0;font-size:.8rem;font-weight:600;word-break:break-all}
+.side-tabs{display:flex;border:1px solid #d1d5db;border-radius:6px;overflow:hidden;flex-shrink:0}
+.side-tabs button{border:none;background:#fff;padding:5px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;color:#374151}
+.side-tabs button.active{background:#1e40af;color:#fff}
+.side-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:.8rem}
+.side-tools input{width:56px;margin:0;padding:4px;text-align:center}
+.zoom{display:inline-flex;gap:4px;align-items:center;margin-left:auto}
+.side-body{flex:1;overflow:auto;background:#f3f4f6;padding:8px;text-align:center}
+.side-body canvas{box-shadow:0 1px 4px rgba(0,0,0,.2);background:#fff}
+.side-text{text-align:left;white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:.8rem;line-height:1.6;background:#fff;padding:10px;border-radius:6px;margin:0}
+.side-foot{padding:8px 10px;border-top:1px solid #e5e7eb;font-size:.8rem;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.side-in{background:#dbeafe;color:#1e40af;border-radius:8px;padding:1px 8px;font-size:.72rem;font-weight:700}
+.side-out{background:#f3f4f6;color:#6b7280;border-radius:8px;padding:1px 8px;font-size:.72rem;font-weight:700}
+.side-empty{padding:24px;color:#6b7280;font-size:.85rem}
+@media (max-width:960px){
+  .layout{display:flex;flex-direction:column}
+  .side{position:static;order:-1;width:100%}
+  .side-wrap{display:flex;flex-direction:column;height:auto}
+  .side-body{max-height:50vh}
+  .list-box{max-height:50vh}
+}
+.tag-new{display:inline-block;font-size:.66rem;background:#dbeafe;color:#1e40af;border-radius:8px;padding:0 5px;margin-left:2px}
+
+.pdf-footer{font-size:.72rem;color:#9ca3af;line-height:1.7;padding:10px 4px;margin-top:4px}
+.pdf-footer a{color:#6b7280}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div id="app"><p style="padding:24px;text-align:center;color:#6b7280">読み込み中...</p></div>
+
+<!--
+  評価画面（書き出すHTML）のテンプレート。
+  type="text/plain" なのでブラウザは実行しない。書き出し時に textContent を取り出し、
+  ・__TITLE__ をタイトルに
+  ・/*DATA_BEGIN*/null/*DATA_END*/ を事業一覧のJSONに
+  ・<\/script> を </script> に
+  置き換えてから保存する（このscript要素の中に生の </script> を書くと、ここで要素が終わってしまうため）。
+-->
+<script type="text/plain" id="eval-template"><!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:"Meiryo","Hiragino Sans",sans-serif;background:#f3f4f6;color:#1f2937}
+/* 画面全体：上（見出し・操作）＋中（スクロールする枠）＋下（送信の帯） */
+.screen{max-width:860px;margin:0 auto;height:100vh;height:100dvh;display:flex;flex-direction:column;padding:8px 8px 0}
+.top{flex-shrink:0}
+.scroll{flex:1;min-height:0;overflow-y:auto;background:#fff;border-radius:8px 8px 0 0;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.hd{background:#1e40af;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:8px}
+.hd h1{font-size:1rem;font-weight:700}
+.hd .sub{font-size:.76rem;opacity:.85;margin-top:2px}
+.panel{background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.note{font-size:.76rem;color:#6b7280;line-height:1.6}
+.btn{display:inline-block;padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:600;text-align:center;text-decoration:none;font-family:inherit}
+.btn:hover{opacity:.88}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:#1e40af;color:#fff}
+.btn-k{background:#16a34a;color:#fff}
+.btn-o{background:#fff;border:1px solid #d1d5db;color:#374151}
+.btn-sm{padding:5px 10px;font-size:.78rem}
+.btn-full{width:100%}
+
+/* 自分の集計・絞り込み */
+.mine{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:.82rem;margin-bottom:8px}
+.mine b{font-size:.95rem}
+.mine .pend{color:#b45309;font-weight:700}
+.ctrls{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{padding:5px 11px;border:1px solid #d1d5db;border-radius:16px;background:#fff;color:#374151;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit}
+.chip.active{background:#1e40af;color:#fff;border-color:#1e40af}
+.ctrls select,.ctrls input{padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.82rem;font-family:inherit;background:#fff}
+.ctrls input{flex:1;min-width:140px}
+
+/* 一覧の行 */
+.row{padding:9px 12px;border-bottom:1px solid #f1f5f9}
+.row.has-pend{background:#fffbeb}
+.row-name{display:flex;gap:8px;align-items:baseline;cursor:pointer}
+.row-name .no{font-size:.72rem;color:#9ca3af;flex-shrink:0;min-width:26px}
+.row-name .nm{font-size:.9rem;font-weight:600;color:#111827;line-height:1.4}
+.row-name:hover .nm{color:#1e40af;text-decoration:underline}
+.subtxt{display:inline-block;margin-left:8px;font-size:.72rem;font-weight:400;color:#6b7280}
+.detail-sub{font-size:.8rem;font-weight:400;color:#6b7280;margin-top:2px}
+.row-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 0 34px}
+.sheet{font-size:.76rem;color:#1e40af;text-decoration:none;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;padding:3px 9px;white-space:nowrap}
+.vote{display:inline-flex;align-items:center;gap:5px;border:1px solid #d1d5db;background:#fff;border-radius:16px;padding:4px 11px;font-size:.82rem;cursor:pointer;font-family:inherit;color:#374151;white-space:nowrap}
+.vote .cnt{font-weight:700;min-width:1em}
+.vote.good.sel{background:#16a34a;border-color:#16a34a;color:#fff}
+.vote.bad.sel{background:#dc2626;border-color:#dc2626;color:#fff}
+.cmt{font-size:.8rem;color:#4b5563;cursor:pointer;white-space:nowrap;padding:3px 4px}
+.pend-tag{font-size:.68rem;color:#b45309;background:#fef3c7;border-radius:8px;padding:1px 7px;font-weight:700}
+.empty{padding:20px;text-align:center;color:#9ca3af;font-size:.85rem}
+
+/* 詳細 */
+.detail{padding:14px}
+.detail-nav{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.detail-nav .pos{font-size:.8rem;color:#6b7280}
+.detail-name{font-size:1.05rem;font-weight:700;color:#111827;line-height:1.5;margin-bottom:10px}
+.sheet-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:12px}
+.big-votes{display:flex;gap:10px;margin:6px 0 4px}
+.big-votes .vote{flex:1;justify-content:center;padding:12px;font-size:1rem;border-radius:10px;border-width:2px}
+.sec{font-size:.85rem;font-weight:700;color:#374151;margin:16px 0 6px}
+.comment-item{background:#f8f9fb;border:1px solid #eef0f2;border-radius:6px;padding:8px 10px;margin-bottom:6px}
+.comment-text{font-size:.84rem;color:#374151;white-space:pre-wrap;word-break:break-word;margin-bottom:4px;line-height:1.6}
+.comment-report-btn{background:none;border:none;color:#9ca3af;font-size:.7rem;cursor:pointer;padding:0;font-family:inherit}
+.comment-report-btn:hover{color:#dc2626}
+textarea{width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;font-size:.88rem;font-family:inherit;resize:vertical}
+
+/* 下部の送信の帯（常に表示） */
+.sendbar{flex-shrink:0;background:#fff;border-top:2px solid #e5e7eb;padding:8px 12px calc(8px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;flex-wrap:wrap;box-shadow:0 -2px 6px rgba(0,0,0,.06)}
+.sendbar.has-pend{border-top-color:#f59e0b;background:#fffbeb}
+.sendbar .msg{flex:1;min-width:180px;font-size:.8rem;line-height:1.5;color:#374151}
+.sendbar.has-pend .msg b{color:#b45309}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;max-width:min(560px,92vw);background:#1f2937;color:#fff;border-radius:8px;padding:10px 14px;font-size:.82rem;line-height:1.6;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:50;white-space:pre-wrap}
+.toast.err{background:#991b1b}
+.toast button{background:none;border:none;color:#fff;opacity:.8;margin-left:8px;cursor:pointer;font-size:.8rem}
+.foot{font-size:.7rem;color:#9ca3af;line-height:1.7;padding:12px}
+.foot a{color:#6b7280}
+@media (max-width:480px){.row-acts{margin-left:0}.hd h1{font-size:.92rem}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast-area"></div>
+<script>
+// このファイルは「事務事業評価 事業一覧ツール作成」で書き出したものです。
+// DATA を手で書き換えると、投票の集計がずれるおそれがあります。修正は作成ツールの「前回作ったHTMLから作り直す」から行ってください。
+const DATA = /*DATA_BEGIN*/null/*DATA_END*/;
+
+const GAS_URL = DATA.gas_url;
+const TOOL_ID = DATA.tool_id;
+const COMMENT_MAX_LENGTH = 500;
+const RATE_CHUNK = 150;
+const COMMENT_PII_PATTERNS = [
+  { test: /0\d{1,4}-\d{1,4}-\d{3,4}/, label: '電話番号らしき数字列' },
+  { test: /[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}/, label: 'メールアドレスらしき文字列' },
+  { test: /https?:\/\/\S+/, label: 'URL' },
+  { test: /(私|僕|自分)の名前は|本名は/, label: '氏名を明示する表現' }
+];
+function findCommentPii(text) {
+  for (const p of COMMENT_PII_PATTERNS) { if (p.test.test(text)) return p.label; }
+  return null;
+}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── この端末に保存するもの ─────────────────────────
+const LS = 'gyosei_list_' + TOOL_ID + '_';
+function lsGet(k, def) { try { const v = JSON.parse(localStorage.getItem(LS + k)); return v == null ? def : v; } catch (e) { return def; } }
+function lsSet(k, v) { try { localStorage.setItem(LS + k, JSON.stringify(v)); } catch (e) {} }
+function randomId(len) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const buf = new Uint8Array(len);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, b => chars[b % chars.length]).join('');
+}
+// 端末ごとのランダムな識別番号。同じ端末から同じ事業に送り直すと、集計では最新の評価だけが数えられる
+let VOTER_ID = lsGet('voter', '');
+if (!/^[0-9a-z]{8,40}$/.test(VOTER_ID)) { VOTER_ID = randomId(16); lsSet('voter', VOTER_ID); }
+
+let ratings = lsGet('ratings', {});   // 事業No -> 'good' | 'bad'（自分の現在の評価）
+let sent = lsGet('sent', {});         // 事業No -> 'good' | 'bad' | 'none'（最後に送信した評価）
+let drafts = lsGet('drafts', {});     // 事業No -> 未送信のコメント
+let hintShown = lsGet('hint', false);
+
+const PROJECTS = DATA.projects;       // 表示順（ファイル順→ページ順）。no は投票の識別番号
+const BY_NO = {};
+PROJECTS.forEach((p, i) => { BY_NO[p.no] = p; p.idx = i; });
+
+let agg = null;        // 事業No -> {good, bad}（みんなの集計。送信済みの分）
+let comments = null;   // 事業No -> [{id, comment}]
+let screen = 'list', curNo = null;
+let filter = '', sortKey = 'page', searchText = '';
+let listScroll = 0, sending = false;
+
+function projLabel(p) { return p.name ? p.name : `事業 No.${p.no}`; }
+function sheetUrl(p) { const f = DATA.files[p.f]; return f && f.url ? f.url + '#page=' + p.page : ''; }
+function pageLabel(p) { const f = DATA.files[p.f]; return (DATA.files.length > 1 && f ? f.name + ' ' : '') + 'p.' + p.page; }
+function aggOf(no) { return (agg && agg[no]) || { good: 0, bad: 0 }; }
+function commentCount(no) { return comments && comments[no] ? comments[no].length : 0; }
+
+// 未送信：現在の評価と最後に送った評価が違う事業、または書きかけのコメントがある事業
+function ratingPending(no) { return (ratings[no] || 'none') !== (sent[no] || 'none'); }
+function pendingRatingNos() { return PROJECTS.filter(p => ratingPending(p.no)).map(p => p.no); }
+function pendingCommentNos() { return PROJECTS.filter(p => drafts[p.no] && drafts[p.no].trim()).map(p => p.no); }
+
+// ========================================================================
+// 画面
+// ========================================================================
+function headerHtml(sub) {
+  return `<div class="hd"><h1>${esc(DATA.title)}</h1><div class="sub">${esc(sub)}</div></div>`;
+}
+function footHtml() {
+  return `<div class="foot">
+    ${DATA.source_url ? `<p><strong>出典：</strong><a href="${esc(DATA.source_url)}" target="_blank" rel="noopener" style="overflow-wrap:anywhere">${esc(DATA.source_url)}</a></p>` : ''}
+    <p>評価の判断材料は、自治体が公表している評価シートです。本ツールは事業の一覧と投票の機能だけを提供しています。</p>
+    <p>評価とコメントは、送信するまでこの端末にだけ保存されます。送信した評価は、あとから変更できます（送信したコメントは修正・削除できません）。</p>
+    <p>この評価ツールは、<a href="https://onuma-spec.github.io/jimujigyou-hyoka-list/" target="_blank" rel="noopener">事務事業評価 事業一覧ツール作成</a>で作成しました。どなたでも、ほかの自治体の評価ツールを作れます。</p>
+    <p>本ツールは、Claude（AI）を用いて作成しています。　ツールのライセンス：MIT</p>
+  </div>`;
+}
+
+function sendbarHtml() {
+  const r = pendingRatingNos().length, c = pendingCommentNos().length;
+  const n = r + c;
+  if (sending) return `<div class="sendbar has-pend" id="sendbar"><div class="msg">送信しています…</div><button class="btn btn-k" disabled>送信中…</button></div>`;
+  return `<div class="sendbar ${n ? 'has-pend' : ''}" id="sendbar">
+    <div class="msg">${n
+      ? `⚠ <b>未送信が${n}件</b>あります（評価${r}件・コメント${c}件）。<br>途中でも送信できます。送信した評価は、あとから変更できます。`
+      : (Object.keys(ratings).length ? '✓ 評価はすべて送信済みです。' : '👍／👎 を押して評価し、最後にここから送信してください。')}</div>
+    <button class="btn btn-k" ${n ? '' : 'disabled'} onclick="submitAll()">📤 まとめて送信する</button>
+  </div>`;
+}
+function refreshSendbar() {
+  const el = document.getElementById('sendbar');
+  if (el) el.outerHTML = sendbarHtml();
+}
+
+// ── 一覧（まとめを兼ねる） ───────────────────────────
+function renderList() {
+  screen = 'list';
+  document.getElementById('app').innerHTML = `<div class="screen">
+    <div class="top">
+      ${headerHtml(`全${PROJECTS.length}事業　評価シートを確認して、👍（良い）か 👎（悪い）を押してください`)}
+      <div class="panel">
+        <div class="mine" id="mine">${mineHtml()}</div>
+        <div class="ctrls">
+          ${[['', 'すべて'], ['good', '👍'], ['bad', '👎'], ['none', '未評価'], ['comment', '💬あり']].map(([v, l]) =>
+            `<button class="chip ${filter === v ? 'active' : ''}" onclick="setFilter('${v}')">${l}</button>`).join('')}
+          <select onchange="sortKey=this.value; renderRows(true)">
+            ${[['page', 'ページ順'], ['good', '👍が多い順'], ['bad', '👎が多い順'], ['comment', 'コメントが多い順']].map(([v, l]) =>
+              `<option value="${v}" ${sortKey === v ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+          <input type="search" placeholder="事業名・補足で絞り込み" value="${esc(searchText)}" oninput="searchText=this.value; renderRows(true)">
+        </div>
+      </div>
+    </div>
+    <div class="scroll" id="list-scroll"><div id="rows"></div>${footHtml()}</div>
+    ${sendbarHtml()}
+  </div>`;
+  renderRows(false);
+  document.getElementById('list-scroll').scrollTop = listScroll;
+}
+
+function mineHtml() {
+  let good = 0, bad = 0;
+  PROJECTS.forEach(p => { if (ratings[p.no] === 'good') good++; else if (ratings[p.no] === 'bad') bad++; });
+  const pend = pendingRatingNos().length + pendingCommentNos().length;
+  return `<span>自分の評価：</span><span>👍 <b>${good}</b></span><span>👎 <b>${bad}</b></span><span>未評価 <b>${PROJECTS.length - good - bad}</b></span>${pend ? `<span class="pend">未送信 ${pend}件</span>` : ''}`;
+}
+
+function setFilter(v) {
+  filter = v;
+  document.querySelectorAll('.chip').forEach((b, i) => b.classList.toggle('active', ['', 'good', 'bad', 'none', 'comment'][i] === v));
+  renderRows(true);
+}
+
+function visibleProjects() {
+  const q = searchText.trim();
+  let list = PROJECTS.filter(p => {
+    if (q && !((p.name || '') + ' ' + (p.sub || '')).includes(q)) return false;
+    if (filter === 'good' || filter === 'bad') return ratings[p.no] === filter;
+    if (filter === 'none') return !ratings[p.no];
+    if (filter === 'comment') return commentCount(p.no) > 0;
+    return true;
+  });
+  if (sortKey === 'good') list = list.slice().sort((a, b) => aggOf(b.no).good - aggOf(a.no).good || a.idx - b.idx);
+  else if (sortKey === 'bad') list = list.slice().sort((a, b) => aggOf(b.no).bad - aggOf(a.no).bad || a.idx - b.idx);
+  else if (sortKey === 'comment') list = list.slice().sort((a, b) => commentCount(b.no) - commentCount(a.no) || a.idx - b.idx);
+  return list;
+}
+
+function rowHtml(p) {
+  const a = aggOf(p.no), mine = ratings[p.no] || '';
+  const url = sheetUrl(p);
+  const pend = ratingPending(p.no) || !!(drafts[p.no] && drafts[p.no].trim());
+  return `<div class="row ${pend ? 'has-pend' : ''}" id="row-${p.no}">
+    <div class="row-name" onclick="openProject(${p.no})"><span class="no">${p.no}</span><span class="nm">${esc(projLabel(p))}${p.sub ? `<span class="subtxt">${esc(p.sub)}</span>` : ''}</span></div>
+    <div class="row-acts">
+      ${url ? `<a class="sheet" href="${esc(url)}" target="_blank" rel="noopener">📄 評価シート ${esc(pageLabel(p))}</a>` : `<span class="sheet">📄 ${esc(pageLabel(p))}</span>`}
+      <button class="vote good ${mine === 'good' ? 'sel' : ''}" onclick="rate(${p.no}, 'good')" title="良い">👍 <span class="cnt">${agg ? a.good : '-'}</span></button>
+      <button class="vote bad ${mine === 'bad' ? 'sel' : ''}" onclick="rate(${p.no}, 'bad')" title="悪い">👎 <span class="cnt">${agg ? a.bad : '-'}</span></button>
+      <span class="cmt" onclick="openProject(${p.no})">💬 ${comments ? commentCount(p.no) : '-'}</span>
+      ${pend ? '<span class="pend-tag">未送信</span>' : ''}
+    </div>
+  </div>`;
+}
+
+function renderRows(resetScroll) {
+  const el = document.getElementById('rows');
+  if (!el) return;
+  const list = visibleProjects();
+  el.innerHTML = list.length ? list.map(rowHtml).join('') : '<div class="empty">該当する事業がありません。</div>';
+  if (resetScroll) document.getElementById('list-scroll').scrollTop = 0;
+}
+
+// 1行だけ・上部の集計・送信の帯だけを書き換える（一覧のスクロール位置を保つため）
+function refreshAfterChange(no) {
+  const row = document.getElementById('row-' + no);
+  if (row) row.outerHTML = rowHtml(BY_NO[no]);
+  const mine = document.getElementById('mine');
+  if (mine) mine.innerHTML = mineHtml();
+  if (screen === 'detail') refreshDetailVotes();
+  refreshSendbar();
+}
+
+// ── 評価 ─────────────────────────────────────────
+function rate(no, r) {
+  if (ratings[no] === r) delete ratings[no]; else ratings[no] = r;
+  lsSet('ratings', ratings);
+  refreshAfterChange(no);
+  if (!hintShown) {
+    hintShown = true;
+    lsSet('hint', true);
+    toast('評価はこの端末に保存されました。\n最後に画面下の「📤 まとめて送信する」を押してください（途中でも送信でき、送信した評価はあとから変更できます）。', false, 9000);
+  }
+}
+
+// ── 詳細 ─────────────────────────────────────────
+function openProject(no) {
+  const box = document.getElementById('list-scroll');
+  if (box) listScroll = box.scrollTop;
+  curNo = no;
+  renderDetail();
+}
+function backToList() { renderList(); }
+
+function renderDetail() {
+  screen = 'detail';
+  const p = BY_NO[curNo];
+  const prev = PROJECTS[p.idx - 1], next = PROJECTS[p.idx + 1];
+  const url = sheetUrl(p);
+  document.getElementById('app').innerHTML = `<div class="screen">
+    <div class="top">${headerHtml('事業の評価')}</div>
+    <div class="scroll" id="detail-scroll"><div class="detail">
+      <div class="detail-nav">
+        <button class="btn btn-o btn-sm" onclick="backToList()">← 一覧に戻る</button>
+        <span class="pos">${p.idx + 1} / ${PROJECTS.length}</span>
+        <span>
+          <button class="btn btn-o btn-sm" ${prev ? `onclick="openProject(${prev.no})"` : 'disabled'}>← 前</button>
+          <button class="btn btn-o btn-sm" ${next ? `onclick="openProject(${next.no})"` : 'disabled'}>次 →</button>
+        </span>
+      </div>
+      <div class="detail-name">No.${p.no}　${esc(projLabel(p))}${p.sub ? `<div class="detail-sub">${esc(p.sub)}</div>` : ''}</div>
+      <div class="sheet-box">
+        ${url
+          ? `<a class="btn btn-p btn-full" href="${esc(url)}" target="_blank" rel="noopener">📄 評価シートを開く（${esc(pageLabel(p))}）</a>
+             <p class="note" style="margin-top:6px">スマートフォンなどでは指定のページではなく1ページ目が開くことがあります。その場合は p.${p.page} まで移動してください。</p>`
+          : `<p class="note">評価シートへのリンクは設定されていません。${DATA.source_url ? '出典ページから評価シートを開き、' : ''}${esc(pageLabel(p))} をご覧ください。</p>`}
+      </div>
+
+      <div class="sec">この事業の評価</div>
+      <div class="big-votes" id="big-votes">${bigVotesHtml(p)}</div>
+
+      <div class="sec">みんなのコメント（<span id="cmt-count">${comments ? commentCount(p.no) : '-'}</span>件）</div>
+      <div id="comment-list">${commentListHtml(p.no)}</div>
+
+      <div class="sec">自分のコメント（任意）</div>
+      <textarea rows="4" maxlength="${COMMENT_MAX_LENGTH}" placeholder="評価の理由や、良い点・悪い点などを自由に書いてください" oninput="saveDraft(${p.no}, this.value)">${esc(drafts[p.no] || '')}</textarea>
+      <p class="note">コメントは、画面下の「まとめて送信する」で評価と一緒に送信されます。送信したコメントは修正・削除できません。電話番号・メールアドレス・URL・氏名は書かないでください。</p>
+      ${next ? `<button class="btn btn-o btn-full" style="margin-top:14px" onclick="openProject(${next.no})">次の事業へ →</button>` : ''}
+    </div>${footHtml()}</div>
+    ${sendbarHtml()}
+  </div>`;
+}
+function bigVotesHtml(p) {
+  const a = aggOf(p.no), mine = ratings[p.no] || '';
+  return `<button class="vote good ${mine === 'good' ? 'sel' : ''}" onclick="rate(${p.no}, 'good')">👍 良い <span class="cnt">${agg ? a.good : '-'}</span></button>
+    <button class="vote bad ${mine === 'bad' ? 'sel' : ''}" onclick="rate(${p.no}, 'bad')">👎 悪い <span class="cnt">${agg ? a.bad : '-'}</span></button>`;
+}
+function refreshDetailVotes() {
+  const el = document.getElementById('big-votes');
+  if (el) el.innerHTML = bigVotesHtml(BY_NO[curNo]);
+}
+function saveDraft(no, text) {
+  const had = !!(drafts[no] && drafts[no].trim());
+  if (text.trim()) drafts[no] = text; else delete drafts[no];
+  lsSet('drafts', drafts);
+  if (had !== !!text.trim()) refreshSendbar();
+}
+
+function commentListHtml(no) {
+  if (!comments) return '<p class="note">読み込み中...</p>';
+  const list = comments[no] || [];
+  if (!list.length) return '<p class="note">まだコメントがありません。</p>';
+  return list.map(c => `<div class="comment-item">
+      <p class="comment-text">${esc(c.comment)}</p>
+      <button class="comment-report-btn" onclick="reportComment(${Number(c.id)})">🚩 不適切として報告する</button>
+    </div>`).join('');
+}
+
+// ========================================================================
+// 通信
+// ========================================================================
+async function api(params) {
+  const qs = Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+  const res = await fetch(GAS_URL + '?' + qs);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || '送信に失敗しました');
+  return json;
+}
+
+async function loadAgg() {
+  try { agg = (await api({ action: 'agg', tool_id: TOOL_ID })).agg || {}; }
+  catch (e) { /* 取得に失敗しても画面は壊さない */ }
+  repaintCounts();
+}
+async function loadComments() {
+  try {
+    const json = await api({ action: 'comment_list', tool_id: TOOL_ID });
+    const map = {};
+    (json.comments || []).forEach(c => { (map[c.event_no] = map[c.event_no] || []).push(c); });
+    comments = map;
+  } catch (e) { comments = comments || {}; }
+  repaintCounts();
+}
+// 件数が届いたら、今の画面の件数表示を更新する（スクロール位置は保つ）
+function repaintCounts() {
+  if (screen === 'list') {
+    const box = document.getElementById('list-scroll');
+    const top = box ? box.scrollTop : 0;
+    renderRows(false);
+    if (box) box.scrollTop = top;
+  } else if (screen === 'detail') {
+    // 入力中のコメント欄を消さないよう、件数とコメント一覧の部分だけを書き換える
+    refreshDetailVotes();
+    const list = document.getElementById('comment-list');
+    if (list) list.innerHTML = commentListHtml(curNo);
+    const cnt = document.getElementById('cmt-count');
+    if (cnt) cnt.textContent = comments ? commentCount(curNo) : '-';
+  }
+}
+
+async function reportComment(id) {
+  if (!confirm('このコメントを不適切として報告しますか？')) return;
+  try { await api({ action: 'comment_report', tool_id: TOOL_ID, comment_id: id }); toast('報告しました。'); }
+  catch (err) { toast('送信できませんでした：' + err.message, true); }
+}
+
+async function submitAll() {
+  if (sending) return;
+  const rNos = pendingRatingNos();
+  const cNos = pendingCommentNos();
+  const skipped = [];
+  const okComments = [];
+  cNos.forEach(no => {
+    const text = drafts[no].trim();
+    const pii = findCommentPii(text);
+    if (pii) skipped.push(`No.${no}：${pii}が含まれている可能性があるため送信しませんでした`);
+    else if (text.length > COMMENT_MAX_LENGTH) skipped.push(`No.${no}：${COMMENT_MAX_LENGTH}文字を超えています`);
+    else okComments.push([no, text]);
+  });
+  if (!rNos.length && !okComments.length) { toast('送信できるものがありません。\n' + skipped.join('\n'), true, 9000); return; }
+
+  sending = true;
+  refreshSendbar();
+  let sentR = 0, sentC = 0, failed = '';
+  try {
+    for (let i = 0; i < rNos.length; i += RATE_CHUNK) {
+      const chunk = rNos.slice(i, i + RATE_CHUNK).map(no => [no, ratings[no] || 'none']);
+      await api({ action: 'rate', tool_id: TOOL_ID, voter_id: VOTER_ID, rows: JSON.stringify(chunk) });
+      chunk.forEach(([no, r]) => { sent[no] = r; });
+      lsSet('sent', sent);
+      sentR += chunk.length;
+    }
+    for (const [no, text] of okComments) {
+      try {
+        await api({ action: 'comment', tool_id: TOOL_ID, event_no: no, comment: text });
+        delete drafts[no];
+        lsSet('drafts', drafts);
+        sentC++;
+      } catch (err) {
+        skipped.push(`No.${no}：${err.message === 'pii detected' ? '個人情報らしき文字が含まれているため送信できませんでした' : '送信エラー（' + err.message + '）'}`);
+      }
+    }
+  } catch (err) {
+    failed = err.message;
+  }
+  sending = false;
+
+  let msg = failed
+    ? `送信中にエラーが発生しました（${failed}）。\n送信できたのは評価${sentR}件・コメント${sentC}件です。時間をおいて、もう一度「まとめて送信する」を押してください。`
+    : `送信しました（評価${sentR}件・コメント${sentC}件）。ありがとうございました。`;
+  if (skipped.length) msg += '\n\n送信しなかったコメント：\n' + skipped.join('\n');
+  toast(msg, !!failed || skipped.length > 0, 9000);
+  if (screen === 'detail') renderDetail(); else renderList();
+  loadAgg();
+  loadComments();
+}
+
+// ── 通知（画面下部に一時表示） ───────────────────────
+let toastTimer = null;
+function toast(text, isErr, ms) {
+  const area = document.getElementById('toast-area');
+  area.innerHTML = `<div class="toast ${isErr ? 'err' : ''}">${esc(text)}<button onclick="this.parentNode.remove()">✕ 閉じる</button></div>`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { area.innerHTML = ''; }, ms || 4000);
+}
+
+// 未送信のまま閉じようとしたら確認する
+window.addEventListener('beforeunload', e => {
+  if (pendingRatingNos().length || pendingCommentNos().length) { e.preventDefault(); e.returnValue = ''; }
+});
+
+renderList();
+loadAgg();
+loadComments();
+<\/script>
+</body>
+</html>
+</script>
+
+<!-- 自分のスプレッドシート用のGASコード（④の「コードをコピー」で使う）。gas/Code.gs と同じ内容。
+     Code.gs を修正したら、sync_gas_code.py を実行してここを更新すること -->
+<script type="text/plain" id="gas-code">
+/**
+ * 事務事業評価 事業一覧ツール（評価画面）専用 GAS+Sheets バックエンド
+ *
+ * 既存の事務事業優先度評価ツール（v3・10自治体）のGASとは別物。
+ * 評価は 👍good／👎bad の2択で、端末ごとのランダムな識別番号（voter_id）を使い、
+ * 同じ端末から同じ事業に送り直した場合は「最新の評価だけ」を集計する（評価の変更・取り消しに対応）。
+ *
+ * 【シート】（setupSheets() を1回実行すると自動で作られる）
+ *   ratings          ： id | tool_id | voter_id | event_no | rating | submitted_at
+ *                       rating は good / bad / none（none＝評価の取り消し）。行は追記のみで、集計時に最新を採用する
+ *   comments         ： id | tool_id | event_no | comment | submitted_at
+ *   comment_reports  ： id | comment_id | tool_id | reported_at
+ *
+ * 【注意】書き込みもdoGetで行う。GAS Web Appは匿名アクセス時に302リダイレクトするため、
+ * ブラウザのfetch()でPOSTするとGETへ変換されボディが失われる（既存GASと同じ理由）。
+ */
+
+var RATINGS_SHEET = 'ratings';
+var COMMENTS_SHEET = 'comments';
+var REPORTS_SHEET = 'comment_reports';
+var RATING_VALUES = { good: true, bad: true, none: true };
+var MAX_ROWS_PER_REQUEST = 200;
+var REPORT_HIDE_THRESHOLD = 3; // 同一コメントへの通報がこの件数に達したら一覧から除外する
+var COMMENT_MAX_LENGTH = 500;
+
+// クライアント側と同じ4パターン。直接APIを呼ばれた場合に備えてサーバー側でもチェックする
+var PII_PATTERNS = [
+  /0\d{1,4}-\d{1,4}-\d{3,4}/,
+  /[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}/,
+  /https?:\/\/\S+/,
+  /(私|僕|自分)の名前は|本名は/
+];
+function containsPii_(text) {
+  for (var i = 0; i < PII_PATTERNS.length; i++) {
+    if (PII_PATTERNS[i].test(text)) return true;
+  }
+  return false;
+}
+
+var HEADERS = {};
+HEADERS[RATINGS_SHEET] = ['id', 'tool_id', 'voter_id', 'event_no', 'rating', 'submitted_at'];
+HEADERS[COMMENTS_SHEET] = ['id', 'tool_id', 'event_no', 'comment', 'submitted_at'];
+HEADERS[REPORTS_SHEET] = ['id', 'comment_id', 'tool_id', 'reported_at'];
+
+// 初回に1回だけ手動で実行する（3枚のシートとヘッダー行を作る。すでにあれば何もしない）
+function setupSheets() {
+  Object.keys(HEADERS).forEach(function (name) { getSheet_(name); });
+}
+
+function getSheet_(name) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, HEADERS[name].length).setValues([HEADERS[name]]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function jsonOut_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function readRows_(name) {
+  var values = getSheet_(name).getDataRange().getValues();
+  return values.slice(1).filter(function (row) { return row[0] !== '' && row[0] !== null; });
+}
+
+function appendRows_(name, makeRows) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var sheet = getSheet_(name);
+    var lastRow = sheet.getLastRow(); // ヘッダー行を含む
+    var nextId = Math.max(lastRow - 1, 0);
+    var now = new Date().toISOString();
+    var rows = makeRows(function () { return ++nextId; }, now);
+    if (rows.length) sheet.getRange(lastRow + 1, 1, rows.length, rows[0].length).setValues(rows);
+    return rows;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function validToolId_(s) { return typeof s === 'string' && /^[0-9a-z_]{5,60}$/.test(s); }
+function validVoterId_(s) { return typeof s === 'string' && /^[0-9a-z]{8,40}$/.test(s); }
+
+function doPost(e) {
+  return jsonOut_({ ok: false, error: 'not supported: use GET' });
+}
+
+function doGet(e) {
+  try {
+    var p = e.parameter;
+    var action = p.action;
+    var toolId = p.tool_id;
+    if (!validToolId_(toolId)) return jsonOut_({ ok: false, error: 'invalid tool_id' });
+
+    // ── 評価の送信：rows = [[event_no, "good"|"bad"|"none"], ...] ──────────
+    if (action === 'rate') {
+      var voterId = p.voter_id;
+      if (!validVoterId_(voterId)) return jsonOut_({ ok: false, error: 'invalid voter_id' });
+      var pairs = JSON.parse(p.rows || '[]');
+      if (!Array.isArray(pairs) || !pairs.length) return jsonOut_({ ok: false, error: 'no rows' });
+      if (pairs.length > MAX_ROWS_PER_REQUEST) return jsonOut_({ ok: false, error: 'too many rows' });
+      for (var i = 0; i < pairs.length; i++) {
+        var no = Number(pairs[i][0]);
+        if (!(no >= 1 && no === Math.floor(no)) || !RATING_VALUES[pairs[i][1]]) return jsonOut_({ ok: false, error: 'invalid row' });
+      }
+      var inserted = appendRows_(RATINGS_SHEET, function (nextId, now) {
+        return pairs.map(function (pr) { return [nextId(), toolId, voterId, Number(pr[0]), pr[1], now]; });
+      });
+      return jsonOut_({ ok: true, inserted: inserted.length });
+    }
+
+    // ── 集計：端末×事業ごとに最新の評価を採用して good/bad を数える ──────────
+    if (action === 'agg') {
+      var latest = {}; // "voter|event_no" -> rating（行は追記順なので後勝ち）
+      readRows_(RATINGS_SHEET).forEach(function (row) {
+        if (String(row[1]) !== toolId) return;
+        latest[row[2] + '|' + row[3]] = row[4];
+      });
+      var agg = {};
+      Object.keys(latest).forEach(function (key) {
+        var rating = latest[key];
+        if (rating !== 'good' && rating !== 'bad') return;
+        var no = key.split('|')[1];
+        if (!agg[no]) agg[no] = { good: 0, bad: 0 };
+        agg[no][rating]++;
+      });
+      return jsonOut_({ ok: true, agg: agg });
+    }
+
+    // ── コメント（追加のみ。修正・削除はできない） ─────────────────────
+    if (action === 'comment') {
+      var eventNo = Number(p.event_no);
+      var comment = String(p.comment || '');
+      if (!(eventNo >= 1)) return jsonOut_({ ok: false, error: 'missing event_no' });
+      if (!comment.trim()) return jsonOut_({ ok: false, error: 'empty comment' });
+      if (comment.length > COMMENT_MAX_LENGTH) return jsonOut_({ ok: false, error: 'comment too long' });
+      if (containsPii_(comment)) return jsonOut_({ ok: false, error: 'pii detected' });
+      var crow = appendRows_(COMMENTS_SHEET, function (nextId, now) {
+        return [[nextId(), toolId, eventNo, comment, now]];
+      });
+      return jsonOut_({ ok: true, id: crow[0][0] });
+    }
+
+    if (action === 'comment_report') {
+      var commentId = Number(p.comment_id);
+      if (!(commentId >= 1)) return jsonOut_({ ok: false, error: 'missing comment_id' });
+      appendRows_(REPORTS_SHEET, function (nextId, now) {
+        return [[nextId(), commentId, toolId, now]];
+      });
+      return jsonOut_({ ok: true });
+    }
+
+    if (action === 'comment_list') {
+      var reportCounts = {};
+      readRows_(REPORTS_SHEET).forEach(function (row) {
+        var cid = String(row[1]);
+        reportCounts[cid] = (reportCounts[cid] || 0) + 1;
+      });
+      var comments = readRows_(COMMENTS_SHEET)
+        .filter(function (row) { return String(row[1]) === toolId && (reportCounts[String(row[0])] || 0) < REPORT_HIDE_THRESHOLD; })
+        .map(function (row) {
+          return {
+            id: row[0],
+            event_no: String(row[2]),
+            comment: row[3],
+            submitted_at: row[4] instanceof Date ? row[4].toISOString() : row[4]
+          };
+        });
+      comments.sort(function (a, b) { return String(a.submitted_at).localeCompare(String(b.submitted_at)); });
+      return jsonOut_({ ok: true, comments: comments });
+    }
+
+    return jsonOut_({ ok: false, error: 'unknown action' });
+  } catch (err) {
+    return jsonOut_({ ok: false, error: String(err) });
+  }
+}
+</script>
+
+<script>
+// pdfjs-dist 4.x はESモジュール（.mjs）のみを配布しているため、動的import()で読み込む
+// （type="module"にすると onclick="..." から参照する関数がwindowに乗らなくなるため）。
+let pdfjsLib = null;
+const pdfjsReady = import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs").then(mod => {
+  pdfjsLib = mod;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs";
+}).catch(err => {
+  document.getElementById('app').innerHTML = `<div class="card"><p>PDF読み込みライブラリ（PDF.js）の読み込みに失敗しました。インターネット接続をご確認のうえ再読み込みしてください。</p><p class="note">${String(err && err.message || err)}</p></div>`;
+  throw err;
+});
+
+// PDFを開く。日本語用の文字コード表（cMap）と標準フォントの場所を必ず指定する。
+// フォントに文字の対応表（ToUnicode）がないPDF（例：西宮市の評価シート）は、cMapがないと
+// 文字の描画も取り出しもできない（罫線と背景色だけが表示され、文字は0文字になる）。
+const PDFJS_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/';
+function openPdf(data) {
+  return pdfjsLib.getDocument({
+    data,
+    cMapUrl: PDFJS_BASE + 'cmaps/',
+    cMapPacked: true,
+    standardFontDataUrl: PDFJS_BASE + 'standard_fonts/'
+  }).promise;
+}
+
+// 投票・コメントの送り先（この評価画面専用のGAS Web App。gas/Code.gs）。書き出すHTMLに設定値として埋め込む。
+// 既存v3ツール群（10自治体）のGASとは別物。
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzvFrgq7y4ssqKzCMFWG8RF4OmheN9bcf4ttoHRP8nIw1L038h38VLJoEGqEuO1f9mD/exec';
+const DATA_VERSION = 2; // 2＝good/bad評価・専用GAS。1は旧GAS（続行/廃止/見直し）向けだったため、作り直すときは送り先を引き継がない
+
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function normName(s) { return String(s || '').normalize('NFKC').replace(/\s+/g, ' ').trim(); }
+function randomId(len) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const buf = new Uint8Array(len);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, b => chars[b % chars.length]).join('');
+}
+
+function footerHtml() {
+  return `<div class="pdf-footer">
+    <p>PDFの読み込みには PDF.js（Mozilla, Apache License 2.0）を使用しています。読み込んだPDFはこの端末の中だけで処理され、どこにも送信されません。</p>
+    <p>本ツールは、Claude（AI）を用いて作成しています。　ツールのライセンス：MIT　｜　<a href="https://github.com/onuma-spec/jimujigyou-hyoka-list" target="_blank" rel="noopener">ソースコード（GitHub）</a></p>
+  </div>`;
+}
+
+// ========================================================================
+// 都道府県・市区町村コード表（tool_idの生成に使用）
+// ========================================================================
+const PREFS = [
+  {code:'01',name:'北海道'},{code:'02',name:'青森県'},{code:'03',name:'岩手県'},{code:'04',name:'宮城県'},
+  {code:'05',name:'秋田県'},{code:'06',name:'山形県'},{code:'07',name:'福島県'},{code:'08',name:'茨城県'},
+  {code:'09',name:'栃木県'},{code:'10',name:'群馬県'},{code:'11',name:'埼玉県'},{code:'12',name:'千葉県'},
+  {code:'13',name:'東京都'},{code:'14',name:'神奈川県'},{code:'15',name:'新潟県'},{code:'16',name:'富山県'},
+  {code:'17',name:'石川県'},{code:'18',name:'福井県'},{code:'19',name:'山梨県'},{code:'20',name:'長野県'},
+  {code:'21',name:'岐阜県'},{code:'22',name:'静岡県'},{code:'23',name:'愛知県'},{code:'24',name:'三重県'},
+  {code:'25',name:'滋賀県'},{code:'26',name:'京都府'},{code:'27',name:'大阪府'},{code:'28',name:'兵庫県'},
+  {code:'29',name:'奈良県'},{code:'30',name:'和歌山県'},{code:'31',name:'鳥取県'},{code:'32',name:'島根県'},
+  {code:'33',name:'岡山県'},{code:'34',name:'広島県'},{code:'35',name:'山口県'},{code:'36',name:'徳島県'},
+  {code:'37',name:'香川県'},{code:'38',name:'愛媛県'},{code:'39',name:'高知県'},{code:'40',name:'福岡県'},
+  {code:'41',name:'佐賀県'},{code:'42',name:'長崎県'},{code:'43',name:'熊本県'},{code:'44',name:'大分県'},
+  {code:'45',name:'宮崎県'},{code:'46',name:'鹿児島県'},{code:'47',name:'沖縄県'}
+];
+const MUNI_RAW = "01100,札幌市;01202,函館市;01203,小樽市;01204,旭川市;01205,室蘭市;01206,釧路市;01207,帯広市;01208,北見市;01209,夕張市;01210,岩見沢市;01211,網走市;01212,留萌市;01213,苫小牧市;01214,稚内市;01215,美唄市;01216,芦別市;01217,江別市;01218,赤平市;01219,紋別市;01220,士別市;01221,名寄市;01222,三笠市;01223,根室市;01224,千歳市;01225,滝川市;01226,砂川市;01227,歌志内市;01228,深川市;01229,富良野市;01230,登別市;01231,恵庭市;01233,伊達市;01234,北広島市;01235,石狩市;01236,北斗市;01303,当別町;01304,新篠津村;01331,松前町;01332,福島町;01333,知内町;01334,木古内町;01337,七飯町;01343,鹿部町;01345,森町;01346,八雲町;01347,長万部町;01361,江差町;01362,上ノ国町;01363,厚沢部町;01364,乙部町;01367,奥尻町;01370,今金町;01371,せたな町;01391,島牧村;01392,寿都町;01393,黒松内町;01394,蘭越町;01395,ニセコ町;01396,真狩村;01397,留寿都村;01398,喜茂別町;01399,京極町;01400,倶知安町;01401,共和町;01402,岩内町;01403,泊村;01404,神恵内村;01405,積丹町;01406,古平町;01407,仁木町;01408,余市町;01409,赤井川村;01423,南幌町;01424,奈井江町;01425,上砂川町;01427,由仁町;01428,長沼町;01429,栗山町;01430,月形町;01431,浦臼町;01432,新十津川町;01433,妹背牛町;01434,秩父別町;01436,雨竜町;01437,北竜町;01438,沼田町;01452,鷹栖町;01453,東神楽町;01454,当麻町;01455,比布町;01456,愛別町;01457,上川町;01458,東川町;01459,美瑛町;01460,上富良野町;01461,中富良野町;01462,南富良野町;01463,占冠村;01464,和寒町;01465,剣淵町;01468,下川町;01469,美深町;01470,音威子府村;01471,中川町;01472,幌加内町;01481,増毛町;01482,小平町;01483,苫前町;01484,羽幌町;01485,初山別村;01486,遠別町;01487,天塩町;01511,猿払村;01512,浜頓別町;01513,中頓別町;01514,枝幸町;01516,豊富町;01517,礼文町;01518,利尻町;01519,利尻富士町;01520,幌延町;01543,美幌町;01544,津別町;01545,斜里町;01546,清里町;01547,小清水町;01549,訓子府町;01550,置戸町;01552,佐呂間町;01555,遠軽町;01559,湧別町;01560,滝上町;01561,興部町;01562,西興部村;01563,雄武町;01564,大空町;01571,豊浦町;01575,壮瞥町;01578,白老町;01581,厚真町;01584,洞爺湖町;01585,安平町;01586,むかわ町;01601,日高町;01602,平取町;01604,新冠町;01607,浦河町;01608,様似町;01609,えりも町;01610,新ひだか町;01631,音更町;01632,士幌町;01633,上士幌町;01634,鹿追町;01635,新得町;01636,清水町;01637,芽室町;01638,中札内村;01639,更別村;01641,大樹町;01642,広尾町;01643,幕別町;01644,池田町;01645,豊頃町;01646,本別町;01647,足寄町;01648,陸別町;01649,浦幌町;01661,釧路町;01662,厚岸町;01663,浜中町;01664,標茶町;01665,弟子屈町;01667,鶴居村;01668,白糠町;01691,別海町;01692,中標津町;01693,標津町;01694,羅臼町;02201,青森市;02202,弘前市;02203,八戸市;02204,黒石市;02205,五所川原市;02206,十和田市;02207,三沢市;02208,むつ市;02209,つがる市;02210,平川市;02301,平内町;02303,今別町;02304,蓬田村;02307,外ヶ浜町;02321,鰺ヶ沢町;02323,深浦町;02343,西目屋村;02361,藤崎町;02362,大鰐町;02367,田舎館村;02381,板柳町;02384,鶴田町;02387,中泊町;02401,野辺地町;02402,七戸町;02405,六戸町;02406,横浜町;02408,東北町;02411,六ヶ所村;02412,おいらせ町;02423,大間町;02424,東通村;02425,風間浦村;02426,佐井村;02441,三戸町;02442,五戸町;02443,田子町;02445,南部町;02446,階上町;02450,新郷村;03201,盛岡市;03202,宮古市;03203,大船渡市;03205,花巻市;03206,北上市;03207,久慈市;03208,遠野市;03209,一関市;03210,陸前高田市;03211,釜石市;03213,二戸市;03214,八幡平市;03215,奥州市;03216,滝沢市;03301,雫石町;03302,葛巻町;03303,岩手町;03321,紫波町;03322,矢巾町;03366,西和賀町;03381,金ケ崎町;03402,平泉町;03441,住田町;03461,大槌町;03482,山田町;03483,岩泉町;03484,田野畑村;03485,普代村;03501,軽米町;03503,野田村;03506,九戸村;03507,洋野町;03524,一戸町;04100,仙台市;04202,石巻市;04203,塩竈市;04205,気仙沼市;04206,白石市;04207,名取市;04208,角田市;04209,多賀城市;04211,岩沼市;04212,登米市;04213,栗原市;04214,東松島市;04215,大崎市;04216,富谷市;04301,蔵王町;04302,七ヶ宿町;04321,大河原町;04322,村田町;04323,柴田町;04324,川崎町;04341,丸森町;04361,亘理町;04362,山元町;04401,松島町;04404,七ヶ浜町;04406,利府町;04421,大和町;04422,大郷町;04424,大衡村;04444,色麻町;04445,加美町;04501,涌谷町;04505,美里町;04581,女川町;04606,南三陸町;05201,秋田市;05202,能代市;05203,横手市;05204,大館市;05206,男鹿市;05207,湯沢市;05209,鹿角市;05210,由利本荘市;05211,潟上市;05212,大仙市;05213,北秋田市;05214,にかほ市;05215,仙北市;05303,小坂町;05327,上小阿仁村;05346,藤里町;05348,三種町;05349,八峰町;05361,五城目町;05363,八郎潟町;05366,井川町;05368,大潟村;05434,美郷町;05463,羽後町;05464,東成瀬村;06201,山形市;06202,米沢市;06203,鶴岡市;06204,酒田市;06205,新庄市;06206,寒河江市;06207,上山市;06208,村山市;06209,長井市;06210,天童市;06211,東根市;06212,尾花沢市;06213,南陽市;06301,山辺町;06302,中山町;06321,河北町;06322,西川町;06323,朝日町;06324,大江町;06341,大石田町;06361,金山町;06362,最上町;06363,舟形町;06364,真室川町;06365,大蔵村;06366,鮭川村;06367,戸沢村;06381,高畠町;06382,川西町;06401,小国町;06402,白鷹町;06403,飯豊町;06426,三川町;06428,庄内町;06461,遊佐町;07201,福島市;07202,会津若松市;07203,郡山市;07204,いわき市;07205,白河市;07207,須賀川市;07208,喜多方市;07209,相馬市;07210,二本松市;07211,田村市;07212,南相馬市;07213,伊達市;07214,本宮市;07301,桑折町;07303,国見町;07308,川俣町;07322,大玉村;07342,鏡石町;07344,天栄村;07362,下郷町;07364,檜枝岐村;07367,只見町;07368,南会津町;07402,北塩原村;07405,西会津町;07407,磐梯町;07408,猪苗代町;07421,会津坂下町;07422,湯川村;07423,柳津町;07444,三島町;07445,金山町;07446,昭和村;07447,会津美里町;07461,西郷村;07464,泉崎村;07465,中島村;07466,矢吹町;07481,棚倉町;07482,矢祭町;07483,塙町;07484,鮫川村;07501,石川町;07502,玉川村;07503,平田村;07504,浅川町;07505,古殿町;07521,三春町;07522,小野町;07541,広野町;07542,楢葉町;07543,富岡町;07544,川内村;07545,大熊町;07546,双葉町;07547,浪江町;07548,葛尾村;07561,新地町;07564,飯舘村;08201,水戸市;08202,日立市;08203,土浦市;08204,古河市;08205,石岡市;08207,結城市;08208,龍ケ崎市;08210,下妻市;08211,常総市;08212,常陸太田市;08214,高萩市;08215,北茨城市;08216,笠間市;08217,取手市;08219,牛久市;08220,つくば市;08221,ひたちなか市;08222,鹿嶋市;08223,潮来市;08224,守谷市;08225,常陸大宮市;08226,那珂市;08227,筑西市;08228,坂東市;08229,稲敷市;08230,かすみがうら市;08231,桜川市;08232,神栖市;08233,行方市;08234,鉾田市;08235,つくばみらい市;08236,小美玉市;08302,茨城町;08309,大洗町;08310,城里町;08341,東海村;08364,大子町;08442,美浦村;08443,阿見町;08447,河内町;08521,八千代町;08542,五霞町;08546,境町;08564,利根町;09201,宇都宮市;09202,足利市;09203,栃木市;09204,佐野市;09205,鹿沼市;09206,日光市;09208,小山市;09209,真岡市;09210,大田原市;09211,矢板市;09213,那須塩原市;09214,さくら市;09215,那須烏山市;09216,下野市;09301,上三川町;09342,益子町;09343,茂木町;09344,市貝町;09345,芳賀町;09361,壬生町;09364,野木町;09384,塩谷町;09386,高根沢町;09407,那須町;09411,那珂川町;10201,前橋市;10202,高崎市;10203,桐生市;10204,伊勢崎市;10205,太田市;10206,沼田市;10207,館林市;10208,渋川市;10209,藤岡市;10210,富岡市;10211,安中市;10212,みどり市;10344,榛東村;10345,吉岡町;10366,上野村;10367,神流町;10382,下仁田町;10383,南牧村;10384,甘楽町;10421,中之条町;10424,長野原町;10425,嬬恋村;10426,草津町;10428,高山村;10429,東吾妻町;10443,片品村;10444,川場村;10448,昭和村;10449,みなかみ町;10464,玉村町;10521,板倉町;10522,明和町;10523,千代田町;10524,大泉町;10525,邑楽町;11100,さいたま市;11201,川越市;11202,熊谷市;11203,川口市;11206,行田市;11207,秩父市;11208,所沢市;11209,飯能市;11210,加須市;11211,本庄市;11212,東松山市;11214,春日部市;11215,狭山市;11216,羽生市;11217,鴻巣市;11218,深谷市;11219,上尾市;11221,草加市;11222,越谷市;11223,蕨市;11224,戸田市;11225,入間市;11227,朝霞市;11228,志木市;11229,和光市;11230,新座市;11231,桶川市;11232,久喜市;11233,北本市;11234,八潮市;11235,富士見市;11237,三郷市;11238,蓮田市;11239,坂戸市;11240,幸手市;11241,鶴ヶ島市;11242,日高市;11243,吉川市;11245,ふじみ野市;11246,白岡市;11301,伊奈町;11324,三芳町;11326,毛呂山町;11327,越生町;11341,滑川町;11342,嵐山町;11343,小川町;11346,川島町;11347,吉見町;11348,鳩山町;11349,ときがわ町;11361,横瀬町;11362,皆野町;11363,長瀞町;11365,小鹿野町;11369,東秩父村;11381,美里町;11383,神川町;11385,上里町;11408,寄居町;11442,宮代町;11464,杉戸町;11465,松伏町;12100,千葉市;12202,銚子市;12203,市川市;12204,船橋市;12205,館山市;12206,木更津市;12207,松戸市;12208,野田市;12210,茂原市;12211,成田市;12212,佐倉市;12213,東金市;12215,旭市;12216,習志野市;12217,柏市;12218,勝浦市;12219,市原市;12220,流山市;12221,八千代市;12222,我孫子市;12223,鴨川市;12224,鎌ケ谷市;12225,君津市;12226,富津市;12227,浦安市;12228,四街道市;12229,袖ケ浦市;12230,八街市;12231,印西市;12232,白井市;12233,富里市;12234,南房総市;12235,匝瑳市;12236,香取市;12237,山武市;12238,いすみ市;12239,大網白里市;12322,酒々井町;12329,栄町;12342,神崎町;12347,多古町;12349,東庄町;12403,九十九里町;12409,芝山町;12410,横芝光町;12421,一宮町;12422,睦沢町;12423,長生村;12424,白子町;12426,長柄町;12427,長南町;12441,大多喜町;12443,御宿町;12463,鋸南町;13101,千代田区;13102,中央区;13103,港区;13104,新宿区;13105,文京区;13106,台東区;13107,墨田区;13108,江東区;13109,品川区;13110,目黒区;13111,大田区;13112,世田谷区;13113,渋谷区;13114,中野区;13115,杉並区;13116,豊島区;13117,北区;13118,荒川区;13119,板橋区;13120,練馬区;13121,足立区;13122,葛飾区;13123,江戸川区;13201,八王子市;13202,立川市;13203,武蔵野市;13204,三鷹市;13205,青梅市;13206,府中市;13207,昭島市;13208,調布市;13209,町田市;13210,小金井市;13211,小平市;13212,日野市;13213,東村山市;13214,国分寺市;13215,国立市;13218,福生市;13219,狛江市;13220,東大和市;13221,清瀬市;13222,東久留米市;13223,武蔵村山市;13224,多摩市;13225,稲城市;13227,羽村市;13228,あきる野市;13229,西東京市;13303,瑞穂町;13305,日の出町;13307,檜原村;13308,奥多摩町;13361,大島町;13362,利島村;13363,新島村;13364,神津島村;13381,三宅村;13382,御蔵島村;13401,八丈町;13402,青ヶ島村;13421,小笠原村;14100,横浜市;14130,川崎市;14150,相模原市;14201,横須賀市;14203,平塚市;14204,鎌倉市;14205,藤沢市;14206,小田原市;14207,茅ヶ崎市;14208,逗子市;14210,三浦市;14211,秦野市;14212,厚木市;14213,大和市;14214,伊勢原市;14215,海老名市;14216,座間市;14217,南足柄市;14218,綾瀬市;14301,葉山町;14321,寒川町;14341,大磯町;14342,二宮町;14361,中井町;14362,大井町;14363,松田町;14364,山北町;14366,開成町;14382,箱根町;14383,真鶴町;14384,湯河原町;14401,愛川町;14402,清川村;15100,新潟市;15202,長岡市;15204,三条市;15205,柏崎市;15206,新発田市;15208,小千谷市;15209,加茂市;15210,十日町市;15211,見附市;15212,村上市;15213,燕市;15216,糸魚川市;15217,妙高市;15218,五泉市;15222,上越市;15223,阿賀野市;15224,佐渡市;15225,魚沼市;15226,南魚沼市;15227,胎内市;15307,聖籠町;15342,弥彦村;15361,田上町;15385,阿賀町;15405,出雲崎町;15461,湯沢町;15482,津南町;15504,刈羽村;15581,関川村;15586,粟島浦村;16201,富山市;16202,高岡市;16204,魚津市;16205,氷見市;16206,滑川市;16207,黒部市;16208,砺波市;16209,小矢部市;16210,南砺市;16211,射水市;16321,舟橋村;16322,上市町;16323,立山町;16342,入善町;16343,朝日町;17201,金沢市;17202,七尾市;17203,小松市;17204,輪島市;17205,珠洲市;17206,加賀市;17207,羽咋市;17209,かほく市;17210,白山市;17211,能美市;17212,野々市市;17324,川北町;17361,津幡町;17365,内灘町;17384,志賀町;17386,宝達志水町;17407,中能登町;17461,穴水町;17463,能登町;18201,福井市;18202,敦賀市;18204,小浜市;18205,大野市;18206,勝山市;18207,鯖江市;18208,あわら市;18209,越前市;18210,坂井市;18322,永平寺町;18382,池田町;18404,南越前町;18423,越前町;18442,美浜町;18481,高浜町;18483,おおい町;18501,若狭町;19201,甲府市;19202,富士吉田市;19204,都留市;19205,山梨市;19206,大月市;19207,韮崎市;19208,南アルプス市;19209,北杜市;19210,甲斐市;19211,笛吹市;19212,上野原市;19213,甲州市;19214,中央市;19346,市川三郷町;19364,早川町;19365,身延町;19366,南部町;19368,富士川町;19384,昭和町;19422,道志村;19423,西桂町;19424,忍野村;19425,山中湖村;19429,鳴沢村;19430,富士河口湖町;19442,小菅村;19443,丹波山村;20201,長野市;20202,松本市;20203,上田市;20204,岡谷市;20205,飯田市;20206,諏訪市;20207,須坂市;20208,小諸市;20209,伊那市;20210,駒ヶ根市;20211,中野市;20212,大町市;20213,飯山市;20214,茅野市;20215,塩尻市;20217,佐久市;20218,千曲市;20219,東御市;20220,安曇野市;20303,小海町;20304,川上村;20305,南牧村;20306,南相木村;20307,北相木村;20309,佐久穂町;20321,軽井沢町;20323,御代田町;20324,立科町;20349,青木村;20350,長和町;20361,下諏訪町;20362,富士見町;20363,原村;20382,辰野町;20383,箕輪町;20384,飯島町;20385,南箕輪村;20386,中川村;20388,宮田村;20402,松川町;20403,高森町;20404,阿南町;20407,阿智村;20409,平谷村;20410,根羽村;20411,下條村;20412,売木村;20413,天龍村;20414,泰阜村;20415,喬木村;20416,豊丘村;20417,大鹿村;20422,上松町;20423,南木曽町;20425,木祖村;20429,王滝村;20430,大桑村;20432,木曽町;20446,麻績村;20448,生坂村;20450,山形村;20451,朝日村;20452,筑北村;20481,池田町;20482,松川村;20485,白馬村;20486,小谷村;20521,坂城町;20541,小布施町;20543,高山村;20561,山ノ内町;20562,木島平村;20563,野沢温泉村;20583,信濃町;20588,小川村;20590,飯綱町;20602,栄村;21201,岐阜市;21202,大垣市;21203,高山市;21204,多治見市;21205,関市;21206,中津川市;21207,美濃市;21208,瑞浪市;21209,羽島市;21210,恵那市;21211,美濃加茂市;21212,土岐市;21213,各務原市;21214,可児市;21215,山県市;21216,瑞穂市;21217,飛騨市;21218,本巣市;21219,郡上市;21220,下呂市;21221,海津市;21302,岐南町;21303,笠松町;21341,養老町;21361,垂井町;21362,関ケ原町;21381,神戸町;21382,輪之内町;21383,安八町;21401,揖斐川町;21403,大野町;21404,池田町;21421,北方町;21501,坂祝町;21502,富加町;21503,川辺町;21504,七宗町;21505,八百津町;21506,白川町;21507,東白川村;21521,御嵩町;21604,白川村;22100,静岡市;22130,浜松市;22203,沼津市;22205,熱海市;22206,三島市;22207,富士宮市;22208,伊東市;22209,島田市;22210,富士市;22211,磐田市;22212,焼津市;22213,掛川市;22214,藤枝市;22215,御殿場市;22216,袋井市;22219,下田市;22220,裾野市;22221,湖西市;22222,伊豆市;22223,御前崎市;22224,菊川市;22225,伊豆の国市;22226,牧之原市;22301,東伊豆町;22302,河津町;22304,南伊豆町;22305,松崎町;22306,西伊豆町;22325,函南町;22341,清水町;22342,長泉町;22344,小山町;22424,吉田町;22429,川根本町;22461,森町;23100,名古屋市;23201,豊橋市;23202,岡崎市;23203,一宮市;23204,瀬戸市;23205,半田市;23206,春日井市;23207,豊川市;23208,津島市;23209,碧南市;23210,刈谷市;23211,豊田市;23212,安城市;23213,西尾市;23214,蒲郡市;23215,犬山市;23216,常滑市;23217,江南市;23219,小牧市;23220,稲沢市;23221,新城市;23222,東海市;23223,大府市;23224,知多市;23225,知立市;23226,尾張旭市;23227,高浜市;23228,岩倉市;23229,豊明市;23230,日進市;23231,田原市;23232,愛西市;23233,清須市;23234,北名古屋市;23235,弥富市;23236,みよし市;23237,あま市;23238,長久手市;23302,東郷町;23342,豊山町;23361,大口町;23362,扶桑町;23424,大治町;23425,蟹江町;23427,飛島村;23441,阿久比町;23442,東浦町;23445,南知多町;23446,美浜町;23447,武豊町;23501,幸田町;23561,設楽町;23562,東栄町;23563,豊根村;24201,津市;24202,四日市市;24203,伊勢市;24204,松阪市;24205,桑名市;24207,鈴鹿市;24208,名張市;24209,尾鷲市;24210,亀山市;24211,鳥羽市;24212,熊野市;24214,いなべ市;24215,志摩市;24216,伊賀市;24303,木曽岬町;24324,東員町;24341,菰野町;24343,朝日町;24344,川越町;24441,多気町;24442,明和町;24443,大台町;24461,玉城町;24470,度会町;24471,大紀町;24472,南伊勢町;24543,紀北町;24561,御浜町;24562,紀宝町;25201,大津市;25202,彦根市;25203,長浜市;25204,近江八幡市;25206,草津市;25207,守山市;25208,栗東市;25209,甲賀市;25210,野洲市;25211,湖南市;25212,高島市;25213,東近江市;25214,米原市;25383,日野町;25384,竜王町;25425,愛荘町;25441,豊郷町;25442,甲良町;25443,多賀町;26100,京都市;26201,福知山市;26202,舞鶴市;26203,綾部市;26204,宇治市;26205,宮津市;26206,亀岡市;26207,城陽市;26208,向日市;26209,長岡京市;26210,八幡市;26211,京田辺市;26212,京丹後市;26213,南丹市;26214,木津川市;26303,大山崎町;26322,久御山町;26343,井手町;26344,宇治田原町;26364,笠置町;26365,和束町;26366,精華町;26367,南山城村;26407,京丹波町;26463,伊根町;26465,与謝野町;27100,大阪市;27140,堺市;27202,岸和田市;27203,豊中市;27204,池田市;27205,吹田市;27206,泉大津市;27207,高槻市;27208,貝塚市;27209,守口市;27210,枚方市;27211,茨木市;27212,八尾市;27213,泉佐野市;27214,富田林市;27215,寝屋川市;27216,河内長野市;27217,松原市;27218,大東市;27219,和泉市;27220,箕面市;27221,柏原市;27222,羽曳野市;27223,門真市;27224,摂津市;27225,高石市;27226,藤井寺市;27227,東大阪市;27228,泉南市;27229,四條畷市;27230,交野市;27231,大阪狭山市;27232,阪南市;27301,島本町;27321,豊能町;27322,能勢町;27341,忠岡町;27361,熊取町;27362,田尻町;27366,岬町;27381,太子町;27382,河南町;27383,千早赤阪村;28100,神戸市;28201,姫路市;28202,尼崎市;28203,明石市;28204,西宮市;28205,洲本市;28206,芦屋市;28207,伊丹市;28208,相生市;28209,豊岡市;28210,加古川市;28212,赤穂市;28213,西脇市;28214,宝塚市;28215,三木市;28216,高砂市;28217,川西市;28218,小野市;28219,三田市;28220,加西市;28221,丹波篠山市;28222,養父市;28223,丹波市;28224,南あわじ市;28225,朝来市;28226,淡路市;28227,宍粟市;28228,加東市;28229,たつの市;28301,猪名川町;28365,多可町;28381,稲美町;28382,播磨町;28442,市川町;28443,福崎町;28446,神河町;28464,太子町;28481,上郡町;28501,佐用町;28585,香美町;28586,新温泉町;29201,奈良市;29202,大和高田市;29203,大和郡山市;29204,天理市;29205,橿原市;29206,桜井市;29207,五條市;29208,御所市;29209,生駒市;29210,香芝市;29211,葛城市;29212,宇陀市;29322,山添村;29342,平群町;29343,三郷町;29344,斑鳩町;29345,安堵町;29361,川西町;29362,三宅町;29363,田原本町;29385,曽爾村;29386,御杖村;29401,高取町;29402,明日香村;29424,上牧町;29425,王寺町;29426,広陵町;29427,河合町;29441,吉野町;29442,大淀町;29443,下市町;29444,黒滝村;29446,天川村;29447,野迫川村;29449,十津川村;29450,下北山村;29451,上北山村;29452,川上村;29453,東吉野村;30201,和歌山市;30202,海南市;30203,橋本市;30204,有田市;30205,御坊市;30206,田辺市;30207,新宮市;30208,紀の川市;30209,岩出市;30304,紀美野町;30341,かつらぎ町;30343,九度山町;30344,高野町;30361,湯浅町;30362,広川町;30366,有田川町;30381,美浜町;30382,日高町;30383,由良町;30390,印南町;30391,みなべ町;30392,日高川町;30401,白浜町;30404,上富田町;30406,すさみ町;30421,那智勝浦町;30422,太地町;30424,古座川町;30427,北山村;30428,串本町;31201,鳥取市;31202,米子市;31203,倉吉市;31204,境港市;31302,岩美町;31325,若桜町;31328,智頭町;31329,八頭町;31364,三朝町;31370,湯梨浜町;31371,琴浦町;31372,北栄町;31384,日吉津村;31386,大山町;31389,南部町;31390,伯耆町;31401,日南町;31402,日野町;31403,江府町;32201,松江市;32202,浜田市;32203,出雲市;32204,益田市;32205,大田市;32206,安来市;32207,江津市;32209,雲南市;32343,奥出雲町;32386,飯南町;32441,川本町;32448,美郷町;32449,邑南町;32501,津和野町;32505,吉賀町;32525,海士町;32526,西ノ島町;32527,知夫村;32528,隠岐の島町;33100,岡山市;33202,倉敷市;33203,津山市;33204,玉野市;33205,笠岡市;33207,井原市;33208,総社市;33209,高梁市;33210,新見市;33211,備前市;33212,瀬戸内市;33213,赤磐市;33214,真庭市;33215,美作市;33216,浅口市;33346,和気町;33423,早島町;33445,里庄町;33461,矢掛町;33586,新庄村;33606,鏡野町;33622,勝央町;33623,奈義町;33643,西粟倉村;33663,久米南町;33666,美咲町;33681,吉備中央町;34100,広島市;34202,呉市;34203,竹原市;34204,三原市;34205,尾道市;34207,福山市;34208,府中市;34209,三次市;34210,庄原市;34211,大竹市;34212,東広島市;34213,廿日市市;34214,安芸高田市;34215,江田島市;34302,府中町;34304,海田町;34307,熊野町;34309,坂町;34368,安芸太田町;34369,北広島町;34431,大崎上島町;34462,世羅町;34545,神石高原町;35201,下関市;35202,宇部市;35203,山口市;35204,萩市;35206,防府市;35207,下松市;35208,岩国市;35210,光市;35211,長門市;35212,柳井市;35213,美祢市;35215,周南市;35216,山陽小野田市;35305,周防大島町;35321,和木町;35341,上関町;35343,田布施町;35344,平生町;35502,阿武町;36201,徳島市;36202,鳴門市;36203,小松島市;36204,阿南市;36205,吉野川市;36206,阿波市;36207,美馬市;36208,三好市;36301,勝浦町;36302,上勝町;36321,佐那河内村;36341,石井町;36342,神山町;36368,那賀町;36383,牟岐町;36387,美波町;36388,海陽町;36401,松茂町;36402,北島町;36403,藍住町;36404,板野町;36405,上板町;36468,つるぎ町;36489,東みよし町;37201,高松市;37202,丸亀市;37203,坂出市;37204,善通寺市;37205,観音寺市;37206,さぬき市;37207,東かがわ市;37208,三豊市;37322,土庄町;37324,小豆島町;37341,三木町;37364,直島町;37386,宇多津町;37387,綾川町;37403,琴平町;37404,多度津町;37406,まんのう町;38201,松山市;38202,今治市;38203,宇和島市;38204,八幡浜市;38205,新居浜市;38206,西条市;38207,大洲市;38210,伊予市;38213,四国中央市;38214,西予市;38215,東温市;38356,上島町;38386,久万高原町;38401,松前町;38402,砥部町;38422,内子町;38442,伊方町;38484,松野町;38488,鬼北町;38506,愛南町;39201,高知市;39202,室戸市;39203,安芸市;39204,南国市;39205,土佐市;39206,須崎市;39208,宿毛市;39209,土佐清水市;39210,四万十市;39211,香南市;39212,香美市;39301,東洋町;39302,奈半利町;39303,田野町;39304,安田町;39305,北川村;39306,馬路村;39307,芸西村;39341,本山町;39344,大豊町;39363,土佐町;39364,大川村;39386,いの町;39387,仁淀川町;39401,中土佐町;39402,佐川町;39403,越知町;39405,檮原町;39410,日高村;39411,津野町;39412,四万十町;39424,大月町;39427,三原村;39428,黒潮町;40100,北九州市;40130,福岡市;40202,大牟田市;40203,久留米市;40204,直方市;40205,飯塚市;40206,田川市;40207,柳川市;40210,八女市;40211,筑後市;40212,大川市;40213,行橋市;40214,豊前市;40215,中間市;40216,小郡市;40217,筑紫野市;40218,春日市;40219,大野城市;40220,宗像市;40221,太宰府市;40223,古賀市;40224,福津市;40225,うきは市;40226,宮若市;40227,嘉麻市;40228,朝倉市;40229,みやま市;40230,糸島市;40231,那珂川市;40341,宇美町;40342,篠栗町;40343,志免町;40344,須恵町;40345,新宮町;40348,久山町;40349,粕屋町;40381,芦屋町;40382,水巻町;40383,岡垣町;40384,遠賀町;40401,小竹町;40402,鞍手町;40421,桂川町;40447,筑前町;40448,東峰村;40503,大刀洗町;40522,大木町;40544,広川町;40601,香春町;40602,添田町;40604,糸田町;40605,川崎町;40608,大任町;40609,赤村;40610,福智町;40621,苅田町;40625,みやこ町;40642,吉富町;40646,上毛町;40647,築上町;41201,佐賀市;41202,唐津市;41203,鳥栖市;41204,多久市;41205,伊万里市;41206,武雄市;41207,鹿島市;41208,小城市;41209,嬉野市;41210,神埼市;41327,吉野ヶ里町;41341,基山町;41345,上峰町;41346,みやき町;41387,玄海町;41401,有田町;41423,大町町;41424,江北町;41425,白石町;41441,太良町;42201,長崎市;42202,佐世保市;42203,島原市;42204,諫早市;42205,大村市;42207,平戸市;42208,松浦市;42209,対馬市;42210,壱岐市;42211,五島市;42212,西海市;42213,雲仙市;42214,南島原市;42307,長与町;42308,時津町;42321,東彼杵町;42322,川棚町;42323,波佐見町;42383,小値賀町;42391,佐々町;42411,新上五島町;43100,熊本市;43202,八代市;43203,人吉市;43204,荒尾市;43205,水俣市;43206,玉名市;43208,山鹿市;43210,菊池市;43211,宇土市;43212,上天草市;43213,宇城市;43214,阿蘇市;43215,天草市;43216,合志市;43348,美里町;43364,玉東町;43367,南関町;43368,長洲町;43369,和水町;43403,大津町;43404,菊陽町;43423,南小国町;43424,小国町;43425,産山村;43428,高森町;43432,西原村;43433,南阿蘇村;43441,御船町;43442,嘉島町;43443,益城町;43444,甲佐町;43447,山都町;43468,氷川町;43482,芦北町;43484,津奈木町;43501,錦町;43505,多良木町;43506,湯前町;43507,水上村;43510,相良村;43511,五木村;43512,山江村;43513,球磨村;43514,あさぎり町;43531,苓北町;44201,大分市;44202,別府市;44203,中津市;44204,日田市;44205,佐伯市;44206,臼杵市;44207,津久見市;44208,竹田市;44209,豊後高田市;44210,杵築市;44211,宇佐市;44212,豊後大野市;44213,由布市;44214,国東市;44322,姫島村;44341,日出町;44461,九重町;44462,玖珠町;45201,宮崎市;45202,都城市;45203,延岡市;45204,日南市;45205,小林市;45206,日向市;45207,串間市;45208,西都市;45209,えびの市;45341,三股町;45361,高原町;45382,国富町;45383,綾町;45401,高鍋町;45402,新富町;45403,西米良村;45404,木城町;45405,川南町;45406,都農町;45421,門川町;45429,諸塚村;45430,椎葉村;45431,美郷町;45441,高千穂町;45442,日之影町;45443,五ヶ瀬町;46201,鹿児島市;46203,鹿屋市;46204,枕崎市;46206,阿久根市;46208,出水市;46210,指宿市;46213,西之表市;46214,垂水市;46215,薩摩川内市;46216,日置市;46217,曽於市;46218,霧島市;46219,いちき串木野市;46220,南さつま市;46221,志布志市;46222,奄美市;46223,南九州市;46224,伊佐市;46225,姶良市;46303,三島村;46304,十島村;46392,さつま町;46404,長島町;46452,湧水町;46468,大崎町;46482,東串良町;46490,錦江町;46491,南大隅町;46492,肝付町;46501,中種子町;46502,南種子町;46505,屋久島町;46523,大和村;46524,宇検村;46525,瀬戸内町;46527,龍郷町;46529,喜界町;46530,徳之島町;46531,天城町;46532,伊仙町;46533,和泊町;46534,知名町;46535,与論町;47201,那覇市;47205,宜野湾市;47207,石垣市;47208,浦添市;47209,名護市;47210,糸満市;47211,沖縄市;47212,豊見城市;47213,うるま市;47214,宮古島市;47215,南城市;47301,国頭村;47302,大宜味村;47303,東村;47306,今帰仁村;47308,本部町;47311,恩納村;47313,宜野座村;47314,金武町;47315,伊江村;47324,読谷村;47325,嘉手納町;47326,北谷町;47327,北中城村;47328,中城村;47329,西原町;47348,与那原町;47350,南風原町;47353,渡嘉敷村;47354,座間味村;47355,粟国村;47356,渡名喜村;47357,南大東村;47358,北大東村;47359,伊平屋村;47360,伊是名村;47361,久米島町;47362,八重瀬町;47375,多良間村;47381,竹富町;47382,与那国町";
+const MUNIS = MUNI_RAW.split(';').map(s => { const i = s.indexOf(','); return { code: s.slice(0,i), name: s.slice(i+1) }; });
+
+// ========================================================================
+// 状態
+// ========================================================================
+let setup = {
+  step: 1,
+  prefCode: '', muniCode: '', muniName: '', reiwa: '', sourceUrl: '',
+  toolId: '', title: '',
+  // 引き継ぎ元（前回書き出したHTMLのDATA）。null なら新規（番号は1から振る）
+  inherit: null,
+  files: [],      // {fid, filename, url, doc, numPages}
+  nextFid: 1,
+  curFileIdx: -1,
+  curPage: 1,
+  projects: [],   // {uid, fid, page, name}  ※投票用の番号は書き出し時に確定する
+  nextUid: 1,
+  sideTab: 'pdf',   // 確認欄のタブ 'pdf' | 'text'
+  zoom: 1,          // 確認欄のPDF拡大率（1＝幅に合わせる）
+  sideRatio: 'even',// 右側の上下の割合 'view' | 'even' | 'list'
+  sideScroll: null, // 描き直す前の確認欄のスクロール位置
+  listToTop: false, // 次の描き直しで事業一覧を先頭に戻す
+  keywordText: '',
+  scanKeywordUsed: '',
+  labelText: '',
+  distLabelText: '',
+  showAltMethods: false,
+  adjChecked: {},   // 連続同名候補のチェック状態 uid -> bool（未設定はチェックあり扱い）
+  busy: null,       // 実行中の処理 {key, text}
+  msg: null,        // 画面内メッセージ {area, type: 'ok'|'info'|'error', html}
+  destMode: 'shared',  // 投票データの送信先 'shared'（共有）| 'own'（自分のスプレッドシート）
+  ownGasUrl: '',       // 自分のスプレッドシートのGAS（ウェブアプリ）のURL
+  destCheck: null,     // 接続確認の結果 {url, ok}
+  importedGasUrl: '',  // 作り直し元（前回の書き出し）の送信先。変えるときに警告する
+  bulkUrlText: '',     // ①「URLをまとめて貼り付ける」の入力内容
+  bulkUrlOpen: false,
+  lastExportName: '',
+  lastExport: null     // 直近の書き出し {filename, html, title, count, own, toolId}（完了画面・もう一度書き出す用）
+};
+
+pdfjsReady.then(() => renderSetup()).catch(() => { /* エラー表示はpdfjsReady側で済み */ });
+
+function renderSetup() {
+  const app = document.getElementById('app');
+  app.classList.toggle('wide', setup.step === 2);
+  const head = `
+    <div class="hd">
+      <h1>🛠 事務事業評価 事業一覧ツール作成</h1>
+      <div class="sub">${setup.step === 2 ? goalSentenceHtml() : GOAL_SEGMENTS.map(g => g.text).join('')}</div>
+    </div>`;
+  if (setup.step === 1) {
+    app.innerHTML = head + step1Html() + footerHtml();
+    return;
+  }
+  if (setup.step === 3) {
+    app.innerHTML = head + doneHtml() + footerHtml();
+    window.scrollTo(0, 0);
+    return;
+  }
+  // 描き直しても、事業一覧と確認欄のスクロール位置を保つ
+  const box = document.getElementById('list-box');
+  const listTop = box ? box.scrollTop : 0;
+  const body = document.getElementById('side-body');
+  if (body) setup.sideScroll = { top: body.scrollTop, left: body.scrollLeft };
+  // 左＝作業欄（ページ全体でスクロール）、右＝確認欄（上）と事業一覧（下）（固定表示）
+  app.innerHTML = `${head}
+    ${stepNavHtml()}
+    <div class="layout">
+      <div class="work">${step2Html()}${footerHtml()}</div>
+      <aside class="side" id="side">
+        <div class="side-wrap" style="grid-template-rows:${SIDE_RATIOS[setup.sideRatio].rows}">
+          <div class="side-card" id="side-view">${sideViewHtml()}</div>
+          <div class="side-card" id="side-list">${sideListHtml()}</div>
+        </div>
+      </aside>
+    </div>`;
+  const newBox = document.getElementById('list-box');
+  if (newBox) newBox.scrollTop = setup.listToTop ? 0 : listTop;
+  setup.listToTop = false;
+  highlightCurrentRows();
+  requestAnimationFrame(drawSide);
+}
+// ========================================================================
+// ステップ1：基本情報／引き継ぎ
+// ========================================================================
+function step1Html() {
+  const prefOpts = PREFS.map(p => `<option value="${p.code}" ${setup.prefCode===p.code?'selected':''}>${esc(p.name)}</option>`).join('');
+  const muniOpts = setup.prefCode
+    ? MUNIS.filter(m => m.code.slice(0,2) === setup.prefCode).map(m => `<option value="${m.code}" ${setup.muniCode===m.code?'selected':''}>${esc(m.name)}</option>`).join('')
+    : '';
+  const reiwaOpts = Array.from({length:14}, (_,i)=>i+1).map(n => `<option value="${n}" ${String(setup.reiwa)===String(n)?'selected':''}>令和${n}年度</option>`).join('');
+  const canProceed = setup.prefCode && setup.muniCode && setup.reiwa;
+  const seireki = setup.reiwa ? Number(setup.reiwa) + 2018 : null;
+
+  return `
+  <div class="card">
+    <h2>新しく作る</h2>
+    <p class="note">評価対象の自治体・年度を選んでください。</p>
+    <div class="field">
+      <label>都道府県</label>
+      <select onchange="setupSetPref(this.value)">
+        <option value="">-- 選択してください --</option>
+        ${prefOpts}
+      </select>
+    </div>
+    <div class="field">
+      <label>市区町村</label>
+      <select onchange="setupSetMuni(this.value)" ${setup.prefCode ? '' : 'disabled'}>
+        <option value="">-- 都道府県を先に選んでください --</option>
+        ${muniOpts}
+      </select>
+    </div>
+    <div class="field">
+      <label>対象年度</label>
+      <select onchange="setupSetReiwa(this.value)">
+        <option value="">-- 選択してください --</option>
+        ${reiwaOpts}
+      </select>
+      <p class="note" style="margin:-4px 0 10px">評価報告書の表紙やタイトルに書かれている年度を選んでください（例：「令和7年度 事務事業評価」なら令和7年度）。評価の対象になった事業の実施年度（前年度の決算など）ではありません。</p>
+    </div>
+    <div class="field">
+      <label>出典URL（評価シートを掲載している自治体のページ。任意）</label>
+      <input type="url" value="${esc(setup.sourceUrl)}" placeholder="https://www.city.〇〇.lg.jp/..." onchange="setup.sourceUrl=this.value.trim()">
+    </div>
+    ${canProceed ? `<div class="preview-box">
+      タイトル：<b>令和${esc(setup.reiwa)}年度 ${esc(setup.muniName)} 事務事業評価</b><br>
+      投票データの識別キー（tool_id）：<b>${esc(setup.muniCode)}_${seireki}_</b>＋ランダムな6文字（次へ進むと決まります）
+    </div>` : ''}
+    <button class="btn btn-p btn-full" ${canProceed ? '' : 'disabled'} onclick="setupGoStep2()">次へ（PDFを読み込む） →</button>
+  </div>
+
+  <div class="card">
+    <h2>前回作ったHTMLから作り直す（評価データを引き継ぐ）</h2>
+    <p class="note">このツールで書き出したHTMLファイルを読み込むと、事業一覧の続きから修正できます。集まった投票・コメントはそのまま引き継がれます。評価シートPDFが差し替えられた場合も、こちらから作り直してください。</p>
+    <label>書き出し済みのHTMLファイルを選択</label>
+    <input type="file" accept=".html,.htm" onchange="setupImportHtml(this)">
+    ${msgHtml('import')}
+  </div>
+
+  <div class="card">
+    <h2>このツールについて</h2>
+    <p>自治体が公表している事務事業評価シート（PDF）から事業の一覧を作り、住民が事業ごとに 👍（良い）・👎（悪い）を投票し、コメントできる評価ツールを作成します。送信した評価は、あとから変更できます。</p>
+    <p>書き出すのはHTMLファイル1つだけです。PDFは同梱せず、各事業から自治体サイトの評価シートの該当ページへリンクします。</p>
+    <p class="note">投票・コメントは共有のデータベースに、評価ツールごとの識別キー（tool_id）で区別して保存されます。同じ自治体・年度でも、新しく作ったツール同士の投票は合算されません。</p>
+  </div>`;
+}
+
+function setupSetPref(v) { setup.prefCode = v; setup.muniCode = ''; setup.muniName = ''; renderSetup(); }
+function setupSetMuni(v) {
+  setup.muniCode = v;
+  const m = MUNIS.find(x => x.code === v);
+  setup.muniName = m ? m.name : '';
+  renderSetup();
+}
+function setupSetReiwa(v) { setup.reiwa = v; renderSetup(); }
+
+function setupGoStep2() {
+  const seireki = Number(setup.reiwa) + 2018;
+  setup.toolId = `${setup.muniCode}_${seireki}_${randomId(6)}`;
+  setup.title = `令和${setup.reiwa}年度 ${setup.muniName} 事務事業評価`;
+  setup.inherit = null;
+  resetDest('');
+  setup.step = 2;
+  renderSetup();
+}
+
+// 送信先の設定を初期化する。gasUrl は作り直し元の送信先（新規なら空）
+function resetDest(gasUrl) {
+  setup.importedGasUrl = gasUrl || '';
+  const own = !!gasUrl && gasUrl !== DEFAULT_GAS_URL;
+  setup.destMode = own ? 'own' : 'shared';
+  setup.ownGasUrl = own ? gasUrl : '';
+  setup.destCheck = null;
+}
+
+// 書き出し済みHTMLから DATA を取り出す
+function parseExportedHtml(text) {
+  const b = text.indexOf('/*DATA_BEGIN*/'), e = text.indexOf('/*DATA_END*/');
+  if (b < 0 || e < 0 || e < b) return null;
+  try { return JSON.parse(text.slice(b + '/*DATA_BEGIN*/'.length, e)); } catch (err) { return null; }
+}
+
+async function setupImportHtml(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const data = parseExportedHtml(await file.text());
+  if (!data || !data.tool_id || !Array.isArray(data.projects)) {
+    showMsg('import', 'error', 'このファイルからは事業一覧を読み取れませんでした。このツールで書き出したHTMLファイルを選んでください。');
+    return;
+  }
+  setup.inherit = data;
+  // 旧版（v1）の送信先は使えなくなったため引き継がない
+  resetDest(data.v >= DATA_VERSION ? data.gas_url : '');
+  setup.toolId = data.tool_id;
+  setup.title = data.title || '';
+  setup.prefCode = data.pref_code || '';
+  setup.muniCode = data.muni_code || '';
+  setup.muniName = data.muni_name || '';
+  setup.reiwa = data.reiwa || '';
+  setup.sourceUrl = data.source_url || '';
+  setup.nextFid = 1;
+  setup.files = (data.files || []).map(f => ({ fid: 'f' + (setup.nextFid++), filename: f.name, url: f.url || '', doc: null, numPages: 0 }));
+  setup.nextUid = 1;
+  setup.projects = data.projects.map(p => ({
+    uid: setup.nextUid++,
+    fid: setup.files[p.f] ? setup.files[p.f].fid : (setup.files[0] && setup.files[0].fid),
+    page: p.page,
+    name: p.name || null,
+    sub: p.sub || ''
+  }));
+  setup.curFileIdx = setup.files.length ? 0 : -1;
+  setup.curPage = 1;
+  setup.msg = null;
+  setup.step = 2;
+  renderSetup();
+}
+
+function setupBackToStep1() {
+  if (setup.projects.length && !confirm('入力中の事業一覧は破棄されます。最初の画面に戻りますか？')) return;
+  setup.inherit = null;
+  setup.files = []; setup.projects = []; setup.curFileIdx = -1; setup.curPage = 1;
+  setup.msg = null;
+  setup.step = 1;
+  renderSetup();
+}
+
+// ========================================================================
+// 画面内メッセージ・処理中表示
+// ========================================================================
+// 結果やエラーはポップアップではなく、操作した場所の近くに表示し、そこまで画面を移動する
+function msgHtml(area) {
+  const m = setup.msg;
+  if (!m || m.area !== area) return '';
+  return `<div class="msg msg-${m.type}" id="msg-${area}">${m.html}</div>`;
+}
+function scrollToId(id, block) {
+  requestAnimationFrame(() => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: block || 'center' });
+  });
+}
+function showMsg(area, type, html, block) {
+  setup.msg = { area, type, html };
+  renderSetup();
+  scrollToId('msg-' + area, block);
+}
+
+// 処理中は、押したボタンを進み具合の表示に切り替え、ほかの操作ボタンも押せないようにする
+function actBtn(key, label, onclick, cls) {
+  const b = setup.busy;
+  if (b && b.key === key) return `<button class="btn ${cls} btn-busy" disabled><span class="spinner"></span><span class="busy-text">${esc(b.text)}</span></button>`;
+  return `<button class="btn ${cls}" ${b ? 'disabled' : ''} onclick="${onclick}">${label}</button>`;
+}
+// 進み具合はボタンと上部の帯の両方に出す
+function setBusyText(t) {
+  if (setup.busy) setup.busy.text = t;
+  document.querySelectorAll('.busy-text').forEach(el => { el.textContent = t; });
+}
+const nextFrame = () => new Promise(r => setTimeout(r, 0));
+
+// fn は処理の結果メッセージ {area, type, html, block} を返す（null なら再描画のみ）。fn の中では renderSetup しないこと
+async function runBusy(key, text, fn) {
+  if (setup.busy) return;
+  setup.busy = { key, text };
+  setup.msg = null;
+  renderSetup();
+  await nextFrame();
+  let result;
+  try { result = await fn(); }
+  catch (e) { result = { area: key, type: 'error', html: 'エラーが発生しました：' + esc(e && e.message || e) }; }
+  setup.busy = null;
+  if (result) showMsg(result.area || key, result.type, result.html, result.block);
+  else renderSetup();
+}
+
+// ========================================================================
+// ステップ2：左＝作業欄（①〜⑤）、右＝確認欄（PDF／文字）と事業一覧
+// ========================================================================
+// ── 目的の一文と①〜⑤の対応 ─────────────────────────
+// タイトル下の一文を区切り、各手順がこの一文のどの部分を担当しているかを示す
+// （「何をさせられているか分からないまま指示だけ飛んでくる」状態を避けるため）
+const GOAL_SEGMENTS = [
+  { nums: '①', text: '評価シートPDFから' },
+  { nums: '②③', text: '事業一覧を作り、' },
+  { nums: '④', text: '住民が投票できる' },
+  { nums: '⑤', text: '評価ツール（HTMLファイル1つ）を書き出します' }
+];
+function goalSentenceHtml() {
+  return GOAL_SEGMENTS.map(g => `<span class="goal-seg"><span class="goal-num">${g.nums}</span>${esc(g.text)}</span>`).join('');
+}
+
+// 各手順が済んだかどうか。まだ済んでいない最初の手順を「いまここ」とする
+function stepStatus() {
+  const files = setup.files;
+  const done = {};
+  done[1] = files.length > 0 && files.every(f => f.doc && f.url);
+  done[2] = setup.projects.length > 0;
+  done[3] = done[2] && setup.projects.every(p => normName(p.name)) && !analyzeDuplicates().adj.length;
+  done[4] = setup.destMode === 'shared' || !!(setup.destCheck && setup.destCheck.ok && setup.destCheck.url === setup.ownGasUrl.trim());
+  done[5] = !!setup.lastExportName;
+  const cur = [1, 2, 3, 4, 5].find(k => !done[k]) || 0;
+  return { done, cur };
+}
+function stepMark(st, k) { return st.done[k] ? '✅ ' : (st.cur === k ? '▶ ' : ''); }
+
+const STEP_NAV = [
+  { k: 1, id: 'card-files', label: '① 評価シートPDFから' },
+  { k: 2, id: 'card-find', label: '② 事業一覧を作り（行）' },
+  { k: 3, id: 'list-card', label: '③ 事業一覧を作り（中身）' },
+  { k: 4, id: 'card-dest', label: '④ 住民が投票できる' },
+  { k: 5, id: 'card-export', label: '⑤ 評価ツールを書き出します' }
+];
+function stepNavHtml() {
+  const b = setup.busy;
+  const st = stepStatus();
+  return `<nav class="stepnav">
+    ${STEP_NAV.map(n => `<button class="${st.done[n.k] ? 'done' : ''} ${st.cur === n.k ? 'cur' : ''}" onclick="scrollToId('${n.id}', 'start')">${stepMark(st, n.k)}${n.k === 3 ? n.label.replace('（中身）', `（中身・${setup.projects.length}件）`) : n.label}</button>`).join('')}
+    ${b ? `<span class="nav-busy"><span class="spinner"></span><span class="busy-text">${esc(b.text)}</span></span>` : ''}
+  </nav>`;
+}
+
+// 各手順の見出しの直下に置く「一文のどの部分か＋何をしているか」
+function purposeHtml(text) { return `<p class="purpose">${text}</p>`; }
+
+function step2Html() {
+  const st = stepStatus();
+  const curFile = setup.curFileIdx >= 0 ? setup.files[setup.curFileIdx] : null;
+  const inheritNote = setup.inherit
+    ? `<div class="preview-box">引き継ぎモード：前回のHTML（${setup.inherit.projects.length}事業）の投票・コメントを引き継ぎます。事業名が前回と同じ事業には、前回と同じ番号が付きます。</div>`
+    : '';
+  return `
+  <div class="card">
+    <p><b>${esc(setup.title)}</b></p>
+    <p class="note">tool_id：${esc(setup.toolId)}</p>
+    ${inheritNote}
+    <button class="btn btn-o btn-sm" ${setup.busy ? 'disabled' : ''} onclick="setupBackToStep1()">← 最初の画面に戻る</button>
+  </div>
+
+  <div class="card" id="card-files">
+    <h2>${stepMark(st, 1)}① 評価シートPDFを読み込み、URLを入力する</h2>
+    ${purposeHtml('<b>「評価シートPDFから」</b>の部分：材料になる評価シートPDFを読み込みます。URLは、住民が各事業の評価シートを開くリンクになります。')}
+    <p class="note">評価シートが複数のPDFに分かれている場合は、すべて読み込んでください。各PDFには、自治体サイト上のPDFのURLを入力します（住民が評価シートを開くためのリンクになります）。</p>
+    ${setup.files.length > 1 ? '<p class="note">事業一覧と評価ツールの事業は、ここに並んだPDFの順（▲▼で入れ替え）→ページ順に並びます。市の公表順に整えてください。</p>' : ''}
+    ${setup.files.map((f, i) => fileRowHtml(f, i)).join('')}
+    ${fileLoadBtnHtml()}
+    ${bulkUrlHtml()}
+    ${msgHtml('files')}
+  </div>
+
+  <div class="card" id="card-find">
+    <h2>${stepMark(st, 2)}② 各事業の評価シートの1枚目を探す</h2>
+    ${purposeHtml('<b>「事業一覧を作り」</b>の1つめ：一覧の行を作ります。評価シートの何ページ目から各事業が始まるかを探し、見つかったページが一覧の1行になります。')}
+    ${curFile && curFile.doc ? findHtml(curFile) : '<p class="note">①でPDFを読み込むと使えます。</p>'}
+  </div>
+
+  <div class="card" id="list-card">
+    <h2>${stepMark(st, 3)}③ 事業一覧を確認する（${setup.projects.length}件）</h2>
+    ${purposeHtml('<b>「事業一覧を作り」</b>の2つめ：一覧の中身を仕上げます。各行に事業名（と補足）を入れ、事業ではない行を消します。')}
+    ${msgHtml('list')}
+    ${projectListHtml()}
+  </div>
+
+  <div class="card" id="card-dest">
+    <h2>${stepMark(st, 4)}④ 投票データの送信先を選ぶ</h2>
+    ${purposeHtml('<b>「住民が投票できる」</b>の部分：住民の投票・コメントを保存する場所を決めます。')}
+    ${destHtml()}
+  </div>
+
+  <div class="card" id="card-export">
+    <h2>${stepMark(st, 5)}⑤ 評価ツール（HTML）を書き出す</h2>
+    ${purposeHtml('<b>「評価ツール（HTMLファイル1つ）を書き出します」</b>の部分：仕上げた事業一覧から評価ツールを書き出します。公開して、住民にURLを共有します。')}
+    ${exportHtml()}
+  </div>`;
+}
+
+function fileLoadBtnHtml() {
+  const b = setup.busy;
+  if (b && b.key === 'files') return `<span class="btn btn-o btn-sm btn-busy"><span class="spinner"></span><span class="busy-text">${esc(b.text)}</span></span>`;
+  if (b) return `<span class="btn btn-o btn-sm" style="opacity:.4">📄 PDFを読み込む</span>`;
+  return `<label class="btn btn-o btn-sm" style="display:inline-block;margin:4px 0 0">
+      📄 ${setup.files.length ? 'PDFを追加で読み込む' : 'PDFを読み込む'}（複数選択できます）
+      <input type="file" accept="application/pdf" multiple style="display:none" onchange="setupLoadPdfFile(this)">
+    </label>`;
+}
+
+// 自治体サイトのPDFのURLをまとめて貼り付け、URL末尾のファイル名と読み込んだPDFのファイル名で対応付ける
+function bulkUrlHtml() {
+  if (!setup.files.length) return '';
+  return `<details class="bulk-url" ${setup.bulkUrlOpen ? 'open' : ''} ontoggle="setup.bulkUrlOpen=this.open">
+    <summary>URLをまとめて貼り付ける</summary>
+    <p class="note">自治体のページからPDFのURLをコピーし、1行に1つずつ貼り付けてください。URLの末尾のファイル名と、読み込んだPDFのファイル名が同じものを自動で対応付けます（自治体のサイトからダウンロードしたままのファイル名なら一致します）。</p>
+    <textarea id="bulk-url-input" rows="4" placeholder="https://www.city.〇〇.lg.jp/.../12345.pdf&#10;https://www.city.〇〇.lg.jp/.../12346.pdf">${esc(setup.bulkUrlText)}</textarea>
+    <button class="btn btn-o btn-sm" ${setup.busy ? 'disabled' : ''} onclick="setupApplyBulkUrls()">ファイル名で対応付ける</button>
+  </details>`;
+}
+
+function fileRowHtml(f, i) {
+  const active = i === setup.curFileIdx;
+  const count = setup.projects.filter(p => p.fid === f.fid).length;
+  const dis = setup.busy ? 'disabled' : '';
+  const last = setup.files.length - 1;
+  return `<div class="file-row ${active ? 'active' : ''}">
+    <span class="order-btns">
+      <button class="btn btn-o btn-sm" ${i === 0 || setup.busy ? 'disabled' : ''} onclick="setupMoveFile(${i}, -1)" title="上へ">▲</button>
+      <button class="btn btn-o btn-sm" ${i === last || setup.busy ? 'disabled' : ''} onclick="setupMoveFile(${i}, 1)" title="下へ">▼</button>
+    </span>
+    <div class="fname">${i + 1}. ${esc(f.filename)} <small>${f.doc ? `${f.numPages}ページ` : '（PDFの再読込が必要）'}・事業${count}件</small></div>
+    ${f.doc
+      ? `<button class="btn btn-o btn-sm" ${active || setup.busy ? 'disabled' : ''} onclick="setupSwitchFile(${i})">${active ? '表示中' : '表示する'}</button>`
+      : `<label class="btn btn-f btn-sm" style="margin:0">🔄 再読込<input type="file" accept="application/pdf" style="display:none" ${dis} onchange="setupReattachFile(${i}, this)"></label>`}
+    <button class="btn btn-h btn-sm" ${dis} onclick="setupRemoveFile(${i})">削除</button>
+    <div class="url-line">
+      <input type="url" value="${esc(f.url)}" placeholder="このPDFのURL（例：https://www.city.〇〇.lg.jp/.../hyoka.pdf）" oninput="setup.files[${i}].url=this.value.trim()">
+      <button class="btn btn-o btn-sm" onclick="setupOpenFileUrl(${i})" title="入力したURLのPDFを新しいタブで開きます">🔗 開いて確認</button>
+    </div>
+  </div>`;
+}
+
+function findHtml(f) {
+  const multi = setup.files.length > 1;
+  return `
+  <p>各事業の評価シートの<b>1枚目にだけ必ず印字されている文字</b>（例：「事務事業評価シート」などのシート名）を探し、見つかったページを各事業の1枚目（開始ページ）として一覧にします。</p>
+  ${multi ? `<p class="note">読み込んだすべてのPDF（${setup.files.filter(x => x.doc).length}件）をまとめて探します。</p>` : ''}
+
+  <h3>1. 評価シートの1枚目に書かれている文字を確認する</h3>
+  <p class="note">確認欄（パソコンでは画面右上）で、どれか1つの事業の評価シートの1枚目を表示し、[文字]タブに切り替えてください（どの事業でもかまいません）。そのページの文字が上から順に表示されます。</p>
+  <p class="note">念のため、別の事業の1枚目と2枚目も見比べ、<b>1枚目にだけ載っている文字</b>を選んでください。2枚目以降にも載っている文字で探すと、1つの事業が2件として数えられます。</p>
+  <button class="btn btn-o btn-sm" onclick="setSideTab('text', true)">確認欄を[文字]表示にする</button>
+
+  <h3>2. 1枚目にだけ出てくる文字で探す</h3>
+  <input type="text" id="keyword-input" value="${esc(setup.keywordText)}" placeholder="例：事務事業評価シート" oninput="setup.keywordText=this.value" onkeydown="if(event.key==='Enter') setupScanKeyword()">
+  ${actBtn('scan', '🔍 全ページを探して一覧を作る', 'setupScanKeyword()', 'btn-p btn-full')}
+  <p class="note">見つかったページが事業一覧になります。探し直すと、このPDFの一覧は新しい結果に置き換わります。</p>
+  ${msgHtml('scan')}
+
+  <div class="alt-box">
+    <button class="btn btn-o btn-sm" onclick="setup.showAltMethods=!setup.showAltMethods; renderSetup()">${setup.showAltMethods ? '▲' : '▼'} 文字で探してもうまくいかない場合</button>
+    ${setup.showAltMethods ? `
+      <div class="method">
+        <div class="method-title">1ページずつ手で追加する</div>
+        <p class="note">探して漏れた事業を補うときや、事業数が少ないときに使います。確認欄で事業の評価シートの1枚目を表示し、確認欄の下にある「＋ このページを一覧に追加」を押してください。</p>
+      </div>
+      <div class="method">
+        <div class="method-title">PDFのしおり（ブックマーク）から追加する</div>
+        <p class="note">PDFに事業ごとのしおりが付いている場合だけ使えます。しおりの名前が事業名として入ります。</p>
+        ${actBtn('alt', 'しおりから追加する', 'setupDetectBookmarks()', 'btn-o btn-full')}
+      </div>` : ''}
+    ${msgHtml('alt')}
+  </div>`;
+}
+
+// ========================================================================
+// 右側：確認欄（上）と事業一覧（下）。ページ送り等では確認欄だけを更新する
+// ========================================================================
+const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3];
+let sideRenderToken = 0;
+
+function isNarrow() { return window.matchMedia('(max-width: 960px)').matches; }
+
+// 右側の上下の割合（確認欄：事業一覧）
+const SIDE_RATIOS = {
+  view: { label: 'PDFを大きく', rows: '72fr 28fr' },
+  even: { label: '半々', rows: '55fr 45fr' },
+  list: { label: '一覧を大きく', rows: '30fr 70fr' }
+};
+function setSideRatio(r) {
+  setup.sideRatio = r;
+  const wrap = document.querySelector('.side-wrap');
+  if (wrap) wrap.style.gridTemplateRows = SIDE_RATIOS[r].rows;
+  document.querySelectorAll('.ratio-btns button').forEach(b => b.classList.toggle('active', b.dataset.r === r));
+  drawSide();
+}
+
+function sideViewHtml() {
+  const f = setup.files[setup.curFileIdx];
+  if (!f || !f.doc) {
+    return `<div class="side-empty">①でPDFを読み込むと、ここにPDFとページの文字が表示されます。</div>`;
+  }
+  const loaded = setup.files.map((x, i) => ({ x, i })).filter(o => o.x.doc);
+  const here = setup.projects.find(p => p.fid === f.fid && p.page === setup.curPage);
+  let hereInfo;
+  if (here) {
+    const n = computeNumbers().result.get(here.uid);
+    hereInfo = `<span class="side-in">一覧にあり</span> No.${n ? n.no : '-'}　${esc(here.name || '(事業名未設定)')}${here.sub ? `　<span class="note">${esc(here.sub)}</span>` : ''}`;
+  } else {
+    hereInfo = `<span class="side-out">一覧にないページ</span> <button class="btn btn-o btn-sm" ${setup.busy ? 'disabled' : ''} onclick="setupAddCurrentPage()">＋ このページを一覧に追加</button>`;
+  }
+  const tab = setup.sideTab;
+  return `
+    <div class="side-hd">
+      ${loaded.length > 1
+        ? `<select onchange="setupSwitchFile(Number(this.value))">${loaded.map(o => `<option value="${o.i}" ${o.i === setup.curFileIdx ? 'selected' : ''}>${esc(o.x.filename)}</option>`).join('')}</select>`
+        : `<div class="side-fname">${esc(f.filename)}</div>`}
+      <div class="side-tabs">
+        <button class="${tab === 'pdf' ? 'active' : ''}" onclick="setSideTab('pdf')">PDF</button>
+        <button class="${tab === 'text' ? 'active' : ''}" onclick="setSideTab('text')">文字</button>
+      </div>
+    </div>
+    <div class="side-tools">
+      <button class="btn btn-o btn-sm" onclick="sidePrevPage()">←</button>
+      <span>p.<input type="text" id="page-jump" value="${setup.curPage}" onkeydown="if(event.key==='Enter') sideJumpPage(this.value)"> / ${f.numPages}</span>
+      <button class="btn btn-o btn-sm" onclick="sideNextPage()">→</button>
+      ${tab === 'pdf' ? `<span class="zoom">
+        <button class="btn btn-o btn-sm" onclick="sideZoom(-1)">－</button>
+        <span>${Math.round(setup.zoom * 100)}%</span>
+        <button class="btn btn-o btn-sm" onclick="sideZoom(1)">＋</button>
+        <button class="btn btn-o btn-sm" onclick="sideZoom(0)">幅に合わせる</button>
+      </span>` : ''}
+    </div>
+    <div class="side-body" id="side-body">
+      ${tab === 'pdf' ? '<canvas id="pdf-canvas"></canvas>' : '<pre class="side-text" id="side-text">読み込み中...</pre>'}
+    </div>
+    <div class="side-foot">${hereInfo}</div>`;
+}
+
+// 右下の事業一覧。行を押すと、確認欄にその事業の評価シートを表示する
+function sideListHtml() {
+  const ratioBtns = `<span class="ratio-btns">${Object.keys(SIDE_RATIOS).map(r =>
+    `<button data-r="${r}" class="${setup.sideRatio === r ? 'active' : ''}" onclick="setSideRatio('${r}')">${SIDE_RATIOS[r].label}</button>`).join('')}</span>`;
+  const head = `<div class="side-list-hd"><b>事業一覧（${setup.projects.length}件）</b>${ratioBtns}</div>`;
+  if (!setup.projects.length) {
+    return `${head}<div class="side-empty">②で探すと、ここに事業一覧が表示されます。</div>`;
+  }
+  const { list, result } = computeNumbers();
+  const dups = duplicateNameKeys();
+  const fileIdx = {};
+  setup.files.forEach((f, i) => { fileIdx[f.fid] = i + 1; });
+  const multiFile = setup.files.length > 1;
+  const dis = setup.busy ? 'disabled' : '';
+  return `${head}
+    <div class="list-box" id="list-box">
+      <table class="proj-tbl">
+        <thead><tr><th>No</th>${multiFile ? '<th>PDF</th>' : ''}<th>開始P</th><th>事業名</th><th>補足</th><th></th></tr></thead>
+        <tbody>${list.map(p => {
+          const n = result.get(p.uid);
+          const isDup = dups.has(dupKey(p));
+          return `<tr id="row-${p.uid}" data-uid="${p.uid}" class="${isDup ? 'dup' : ''}" onclick="setupShowProject(${p.uid})">
+            <td class="c-no">${n.no}${setup.inherit && !n.inherited ? '<span class="tag-new">新</span>' : ''}</td>
+            ${multiFile ? `<td class="c-file">${fileIdx[p.fid] || '?'}</td>` : ''}
+            <td class="c-page">${p.page}</td>
+            <td><input type="text" value="${esc(p.name || '')}" placeholder="(未設定)" onchange="setupUpdateProjectName(${p.uid}, this.value)"></td>
+            <td class="c-sub"><input type="text" value="${esc(p.sub || '')}" placeholder="" onchange="setupUpdateProjectSub(${p.uid}, this.value)"></td>
+            <td class="c-del"><button class="btn btn-h btn-sm" ${dis} onclick="event.stopPropagation(); setupDeleteProject(${p.uid})">削除</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+}
+function updateSide() {
+  const el = document.getElementById('side-view');
+  if (!el) return;
+  el.innerHTML = sideViewHtml();
+  highlightCurrentRows();
+  drawSide();
+}
+async function drawSide() {
+  const token = ++sideRenderToken;
+  const f = setup.files[setup.curFileIdx];
+  if (!f || !f.doc) return;
+  const page = await f.doc.getPage(setup.curPage);
+  if (token !== sideRenderToken) return;
+  const restore = setup.sideScroll;
+  setup.sideScroll = null;
+  if (setup.sideTab === 'text') {
+    const t = await pageTextSorted(page);
+    const el = document.getElementById('side-text');
+    if (token === sideRenderToken && el) el.textContent = t || '（このページから文字を取り出せませんでした。画像として作られたPDFの可能性があります）';
+    return;
+  }
+  const canvas = document.getElementById('pdf-canvas');
+  const body = document.getElementById('side-body');
+  if (!canvas || !body) return;
+  const unscaled = page.getViewport({ scale: 1 });
+  const fit = Math.max(200, body.clientWidth - 20) / unscaled.width;
+  const viewport = page.getViewport({ scale: fit * setup.zoom });
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+  if (restore && token === sideRenderToken) { body.scrollTop = restore.top; body.scrollLeft = restore.left; }
+}
+// 確認欄に表示中のページの行を青くする。scrollList が true なら、その行が見える位置まで一覧をスクロールする
+function highlightCurrentRows(scrollList) {
+  const f = setup.files[setup.curFileIdx];
+  let curRow = null;
+  document.querySelectorAll('tr[data-uid]').forEach(tr => {
+    const p = findProject(Number(tr.dataset.uid));
+    const on = !!(f && p && p.fid === f.fid && p.page === setup.curPage);
+    tr.classList.toggle('cur', on);
+    if (on && tr.id) curRow = tr;
+  });
+  if (scrollList && curRow) scrollRowIntoList(curRow);
+}
+// 一覧の枠の中だけをスクロールする（ページ全体は動かさない）
+function scrollRowIntoList(tr) {
+  const box = document.getElementById('list-box');
+  if (!box || !tr) return;
+  const r = tr.getBoundingClientRect(), b = box.getBoundingClientRect();
+  if (r.top < b.top + 30 || r.bottom > b.bottom) box.scrollTop += r.top - b.top - b.height / 3;
+}
+function setSideTab(tab, scroll) {
+  setup.sideTab = tab;
+  updateSide();
+  if (scroll && isNarrow()) scrollToId('side', 'start');
+}
+function sideShowPage(page) {
+  const f = setup.files[setup.curFileIdx];
+  if (!f || !f.doc) return;
+  setup.curPage = Math.max(1, Math.min(f.numPages, page));
+  updateSide();
+  highlightCurrentRows(true);
+}
+function sidePrevPage() { sideShowPage(setup.curPage - 1); }
+function sideNextPage() { sideShowPage(setup.curPage + 1); }
+function sideJumpPage(v) { sideShowPage(parseInt(v, 10) || 1); }
+function sideZoom(dir) {
+  if (dir === 0) setup.zoom = 1;
+  else {
+    const i = ZOOM_STEPS.indexOf(setup.zoom);
+    setup.zoom = ZOOM_STEPS[Math.max(0, Math.min(ZOOM_STEPS.length - 1, (i < 0 ? 2 : i) + dir))];
+  }
+  updateSide();
+}
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (setup.step === 2) drawSide(); }, 200);
+});
+
+// ========================================================================
+// ④ 投票データの送信先（共有の送信先／自分のスプレッドシート）
+// ========================================================================
+// ひな形：GAS（gas/Code.gs）を組み込んだ空のスプレッドシート。「/copy」を開くとコピー画面になり、
+// コピーするとApps Scriptも一緒に複製されるので、利用者はデプロイするだけでよい
+const TEMPLATE_SHEET_COPY_URL = 'https://docs.google.com/spreadsheets/d/1IxXMkQJNP7n3HcnVuNKDRU3DDa9pVkQIpsZZE8Lj738/copy';
+
+function currentGasUrl() { return setup.destMode === 'own' ? setup.ownGasUrl.trim() : DEFAULT_GAS_URL; }
+
+function gasUrlFormatError(u) {
+  if (!u) return 'URLを貼り付けてください。';
+  if (/\/dev(\?.*)?$/.test(u)) return 'このURLはテスト用（/dev で終わるもの）です。「デプロイ」→「新しいデプロイ」で表示される、/exec で終わるURLを貼り付けてください。';
+  if (!/^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[\w-]+\/exec$/.test(u)) return 'URLの形式が違います。「https://script.google.com/macros/s/…/exec」の形のURLを貼り付けてください。';
+  return '';
+}
+
+function destHtml() {
+  const own = setup.destMode === 'own';
+  const u = currentGasUrl();
+  const changed = setup.importedGasUrl && u && u !== setup.importedGasUrl;
+  const checked = own && setup.destCheck && setup.destCheck.ok && setup.destCheck.url === setup.ownGasUrl.trim();
+  return `
+  <p class="note">住民の投票・コメントを、どこに保存するかを選びます。</p>
+  <label class="radio"><input type="radio" name="dest" ${own ? '' : 'checked'} ${setup.busy ? 'disabled' : ''} onchange="setDestMode('shared')"> <b>共有の送信先を使う</b>（おすすめ・設定不要）</label>
+  <p class="note indent">このツールの作者が管理する共有のスプレッドシートに保存されます。ほかの評価ツールのデータとは、識別キー（tool_id）で区別されます。</p>
+  <label class="radio"><input type="radio" name="dest" ${own ? 'checked' : ''} ${setup.busy ? 'disabled' : ''} onchange="setDestMode('own')"> <b>自分のスプレッドシートに送る</b></label>
+  <p class="note indent">投票データをあなた自身のGoogleドライブに保存し、自由に集計・公開できます。Googleアカウントが必要です。</p>
+  ${own ? `<div class="dest-steps">
+    <ol class="guide-steps">
+      <li><b>ひな形のスプレッドシートをコピーする</b><br>
+        <a class="btn btn-o btn-sm" href="${TEMPLATE_SHEET_COPY_URL}" target="_blank" rel="noopener">📄 ひな形をコピーする（Googleが開きます）</a><br>
+        <span class="note">「コピーを作成」を押すと、投票データ用のシート3枚と、投票を受け付けるプログラム（Apps Script）が、あなたのGoogleドライブに複製されます。中身は空です。</span></li>
+      <li><b>Apps Scriptを開く</b>：コピーしたスプレッドシートのメニュー「拡張機能」→「Apps Script」</li>
+      <li><b>ウェブアプリとして公開する</b>：右上の「デプロイ」→「新しいデプロイ」→ 種類の選択（⚙）で「ウェブアプリ」を選び、次のように設定して「デプロイ」
+        <ul class="note-list"><li>次のユーザーとして実行：<b>自分</b></li><li>アクセスできるユーザー：<b>全員</b></li></ul></li>
+      <li><b>アクセスを許可する</b>：「アクセスを承認」→ 自分のアカウントを選ぶ。「このアプリは Google で確認されていません」と出たら「詳細」→「（プロジェクト名）（安全ではないページ）に移動」→「許可」<br>
+        <span class="note">自分のスプレッドシートに組み込まれたプログラムを、自分のアカウントで動かすための確認です。</span></li>
+      <li><b>URLを貼り付けて、接続を確認する</b>：表示された「ウェブアプリ」のURL（/exec で終わるもの）をコピーして、下に貼り付けてください。
+        <input type="url" value="${esc(setup.ownGasUrl)}" placeholder="https://script.google.com/macros/s/…/exec" oninput="setup.ownGasUrl=this.value.trim()">
+        ${actBtn('dest', '🔌 接続を確認する', 'setupCheckDest()', 'btn-p btn-full')}
+        ${checked ? '<p class="note" style="color:#166534;font-weight:700">✓ 接続を確認済みです。</p>' : ''}</li>
+    </ol>
+    <details>
+      <summary>ひな形を使わず、自分でコードを貼り付ける場合</summary>
+      <p class="note">新しいスプレッドシートで「拡張機能」→「Apps Script」を開き、最初からあるコードをすべて消して、下のボタンでコピーしたコードを貼り付けて保存します。次に、実行する関数で「setupSheets」を選んで「実行」を1回押してから、上の手順3〜5を行ってください。</p>
+      <button class="btn btn-o btn-sm" onclick="copyGasCode()">📋 コードをコピー</button>
+    </details>
+    <p class="note">プログラムを修正して公開し直すときは、「デプロイ」→「デプロイを管理」から既存のデプロイを編集してください（「新しいデプロイ」にするとURLが変わります）。</p>
+  </div>` : ''}
+  ${changed ? `<div class="warn-box">前回の送信先から変わります。これまでに集まった投票・コメントは前回の送信先に残り、新しく書き出す評価画面には表示されなくなります。前回の送信先を使い続ける場合は、元の設定に戻してください。</div>` : ''}
+  ${msgHtml('dest')}`;
+}
+
+function setDestMode(m) {
+  setup.destMode = m;
+  setup.msg = null;
+  renderSetup();
+}
+
+// URL欄は入力中に値を覚えるだけで、画面を描き直さない
+// （欄から離れた瞬間に描き直すと、そのまま押したボタンが差し替わり、1回目のクリックが効かなくなるため）
+
+// 接続の確認：データは書き込まない。
+// ①書き込み用の窓口に不正な端末番号を送り、このツール用のGAS特有のエラー（invalid voter_id）が返るかを見る
+//   （既存v3ツール群のGASは "unknown action" を返すので区別できる）
+// ②集計の読み取りが成功するかを見る
+function setupCheckDest() {
+  const u = setup.ownGasUrl.trim();
+  const fmt = gasUrlFormatError(u);
+  if (fmt) { showMsg('dest', 'error', esc(fmt)); return; }
+  runBusy('dest', '接続を確認しています…', async () => {
+    const q = 'tool_id=' + encodeURIComponent(setup.toolId);
+    let probe;
+    try {
+      probe = await (await fetch(u + '?action=rate&voter_id=x&' + q)).json();
+    } catch (e) {
+      setup.destCheck = { url: u, ok: false };
+      return { area: 'dest', type: 'error', html: `応答を受け取れませんでした。次の点を確認してください。
+        <ul class="note-list" style="color:inherit"><li>デプロイの「アクセスできるユーザー」が「<b>全員</b>」になっているか</li>
+        <li>貼り付けたのが「ウェブアプリ」のURL（/exec で終わるもの）か</li>
+        <li>「アクセスを承認」で許可まで済ませたか</li>
+        <li>デプロイした直後の場合は、1分ほど待ってからもう一度</li></ul>` };
+    }
+    if (!(probe && probe.ok === false && probe.error === 'invalid voter_id')) {
+      setup.destCheck = { url: u, ok: false };
+      const why = probe && probe.error === 'unknown action'
+        ? 'このURLは、別のツール用のプログラムのようです。ひな形をコピーしたスプレッドシートの「Apps Script」からデプロイしたか確認してください。'
+        : `このツール用のプログラムとして確認できませんでした（応答：${esc(probe && probe.error || '不明')}）。ひな形をコピーしたスプレッドシートの「Apps Script」からデプロイしたか確認してください。`;
+      return { area: 'dest', type: 'error', html: why };
+    }
+    try {
+      const agg = await (await fetch(u + '?action=agg&' + q)).json();
+      if (!agg.ok) throw new Error(agg.error || '');
+    } catch (e) {
+      setup.destCheck = { url: u, ok: false };
+      return { area: 'dest', type: 'error', html: `プログラムには接続できましたが、データの読み取りに失敗しました（${esc(e.message)}）。スプレッドシートに ratings・comments・comment_reports の3枚のシートがあるか確認してください。` };
+    }
+    setup.destCheck = { url: u, ok: true };
+    return { area: 'dest', type: 'ok', html: '接続できました。書き出す評価画面の投票・コメントは、このスプレッドシートに保存されます。' };
+  });
+}
+
+function copyGasCode() {
+  const text = document.getElementById('gas-code').textContent.trim() + '\n';
+  const done = () => showMsg('dest', 'ok', 'コードをコピーしました。Apps Script の画面に貼り付けて保存してください。');
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    ta.remove();
+    if (ok) done(); else showMsg('dest', 'error', 'コピーできませんでした。お使いのブラウザでは、このボタンが使えないようです。');
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+  else fallback();
+}
+
+// ── 番号の割り当て（書き出し時に確定。一覧ではプレビュー表示） ──────────────
+// 新規：表示順に1から連番。
+// 引き継ぎ：①事業名が一致する前回の事業の番号を受け継ぐ。同名が複数ある場合は、
+//           同じPDFファイル・近いページ同士を優先して対応付ける。
+//           ②対応する事業がない場合は、前回までに使った最大番号の続きを振る（欠番は再利用しない）。
+function sortedProjects() {
+  const order = {};
+  setup.files.forEach((f, i) => { order[f.fid] = i; });
+  return setup.projects.slice().sort((a, b) => ((order[a.fid] ?? 999) - (order[b.fid] ?? 999)) || (a.page - b.page) || (a.uid - b.uid));
+}
+
+function computeNumbers() {
+  const list = sortedProjects();
+  const result = new Map(); // uid -> {no, inherited}
+  const inh = setup.inherit;
+  if (!inh) {
+    list.forEach((p, i) => result.set(p.uid, { no: i + 1, inherited: false }));
+    return { list, result, nextNo: list.length + 1 };
+  }
+  const oldByName = {};
+  inh.projects.forEach(op => {
+    const k = normName(op.name);
+    if (!k) return;
+    (oldByName[k] = oldByName[k] || []).push(op);
+  });
+  const newByName = {};
+  list.forEach(p => {
+    const k = normName(p.name);
+    if (!k) return;
+    (newByName[k] = newByName[k] || []).push(p);
+  });
+  const fileOf = fid => setup.files.find(f => f.fid === fid);
+  Object.keys(newByName).forEach(k => {
+    const olds = oldByName[k];
+    if (!olds) return;
+    const pairs = [];
+    newByName[k].forEach(np => {
+      const nf = fileOf(np.fid);
+      olds.forEach(op => {
+        const of = (inh.files || [])[op.f] || {};
+        const sameFile = nf && ((of.name && of.name === nf.filename) || (of.url && of.url === nf.url));
+        // 同名の事業どうしは、同じPDF → 同じ補足 → 近いページ の順で対応付ける
+        const sameSub = normName(np.sub) === normName(op.sub);
+        pairs.push({ np, op, score: (sameFile ? 0 : 100000) + (sameSub ? 0 : 10000) + Math.abs(np.page - op.page) });
+      });
+    });
+    pairs.sort((a, b) => a.score - b.score);
+    const usedNew = new Set(), usedOld = new Set();
+    pairs.forEach(({ np, op }) => {
+      if (usedNew.has(np.uid) || usedOld.has(op.no)) return;
+      usedNew.add(np.uid); usedOld.add(op.no);
+      result.set(np.uid, { no: op.no, inherited: true });
+    });
+  });
+  let next = Math.max(inh.next_no || 1, ...inh.projects.map(op => op.no + 1));
+  list.forEach(p => { if (!result.has(p.uid)) result.set(p.uid, { no: next++, inherited: false }); });
+  return { list, result, nextNo: next };
+}
+
+// ── 同じ名前の事業の分析 ─────────────────────────
+// 同じ事業かどうかの判定キー：事業名＋補足
+function dupKey(p) {
+  const n = normName(p.name);
+  return n ? n + ' || ' + normName(p.sub) : '';
+}
+// adj：一覧で隣り合う（同じPDFの連続した開始ページの）同じ事業 → 2枚目以降を拾った可能性が高い
+// distant：それ以外で事業名＋補足が同じもの → 区別が必要
+function analyzeDuplicates() {
+  const list = sortedProjects();
+  const adj = [];
+  for (let i = 1; i < list.length; i++) {
+    const prev = list[i - 1], cur = list[i];
+    const k = dupKey(cur);
+    if (k && cur.fid === prev.fid && k === dupKey(prev)) adj.push({ prev, cur });
+  }
+  const adjCur = new Set(adj.map(a => a.cur.uid));
+  const groups = {};
+  list.forEach(p => {
+    if (adjCur.has(p.uid)) return;
+    const k = dupKey(p);
+    if (k) (groups[k] = groups[k] || []).push(p);
+  });
+  const distant = Object.keys(groups).filter(k => groups[k].length > 1).map(k => ({ name: groups[k][0].name, sub: groups[k][0].sub || '', items: groups[k] }));
+  return { adj, distant };
+}
+
+function duplicateNameKeys() {
+  const count = {};
+  setup.projects.forEach(p => { const k = dupKey(p); if (k) count[k] = (count[k] || 0) + 1; });
+  return new Set(Object.keys(count).filter(k => count[k] > 1));
+}
+
+const LABEL_HOW_IT_WORKS = `入力したラベルを各事業の開始ページで探し、<b>ラベルの右隣に書かれている文字</b>（右隣に何もなければ<b>真下</b>の文字）を取り出します。確認欄の[文字]タブで、ラベルと同じ行の右側（または次の行）に見えている文字が取り出されます。`;
+
+// 左側の③：探し直し（注意）→ 手順1 事業名 → 手順2 補足（同名の区別にも使う）→ 手順3 不要ページの削除
+// 補足を先に入れるのは、連続したページに並ぶ同名の別事業を、2枚目以降の候補と誤って削除しないため
+function projectListHtml() {
+  if (!setup.projects.length) return '<p class="note">まだ事業がありません。②で探すと、事業一覧（パソコンでは画面右下）に表示されます。</p>';
+  const { list, result } = computeNumbers();
+  const named = list.filter(p => normName(p.name)).length;
+  const unnamed = list.filter(p => !normName(p.name));
+  const lostCount = setup.inherit ? setup.inherit.projects.length - [...result.values()].filter(v => v.inherited).length : 0;
+  const { adj, distant } = analyzeDuplicates();
+  const dis = setup.busy ? 'disabled' : '';
+  const pageLinks = ps => ps.map(p => `<a href="javascript:void(0)" onclick="setupShowProject(${p.uid}, true)">p.${p.page}</a>`).join('、');
+
+  return `
+    ${setup.inherit && lostCount > 0 ? `<div class="warn-box">前回の${setup.inherit.projects.length}事業のうち${lostCount}事業は、今回の一覧に同じ名前の事業がないため、その投票は表示されなくなります（データ自体は消えません）。</div>` : ''}
+    <p class="note">事業一覧はパソコンでは画面右下にあります。行を押すと、その事業の評価シートが確認欄に表示されます（表示中の行は青色、同じ名前の事業は赤色）。「開始P」は評価シートの1枚目のページ、No は投票の識別に使う番号で、書き出すときに確定します。${setup.inherit ? '「新」は前回の一覧にない（新しく番号を振る）事業です。' : ''}</p>
+
+    <div class="next-box">
+      <p class="note">件数が想定と大きく違う・関係ないページが多い場合は、先に探し直してください。
+        <button class="btn btn-o btn-sm" ${dis} onclick="setupGoKeyword()">↑ 探す文字を変えて探し直す</button></p>
+
+      <div class="next-item">
+        <div class="next-q">手順1. 事業名を取り出す</div>
+        <p class="note">事業名の直前に印字されているラベル（例：「事務事業名」「事業名称」）を入力してください。${LABEL_HOW_IT_WORKS}</p>
+        <ul class="note-list">
+          <li>評価シートに印字されているとおりに入力してください。</li>
+          <li>ラベルは、まず文字のかたまりが<b>ラベルと完全に一致するもの</b>を探し、なければラベルで始まるもの、ラベルを含むものの順に探します。同じ条件のものが複数あるときは、ページのいちばん上にあるものを使います。</li>
+          <li>取り出せなかったページは結果に表示されます。事業一覧で直接入力してください。</li>
+        </ul>
+        <input type="text" id="label-input" value="${esc(setup.labelText)}" placeholder="例：事務事業名" oninput="setup.labelText=this.value" onkeydown="if(event.key==='Enter') setupExtractNames()">
+        ${actBtn('names', `事業名を取り出す（${list.length}件）`, 'setupExtractNames()', 'btn-p btn-full')}
+        <p class="note">事業名が入っている事業：${named} / ${list.length}件</p>
+      </div>
+
+      <div id="dups-anchor"></div>
+      <div class="next-item">
+        <div class="next-q">手順2. 補足を入れる（任意）</div>
+        ${subSectionHtml(distant)}
+        ${msgHtml('dist')}
+      </div>
+
+      <div class="next-item">
+        <div class="next-q">手順3. 不要なページを取り除く</div>
+        ${adj.length ? adjSectionHtml(adj) : ''}
+        <p class="note">表紙・目次など、事業ではないページは、事業一覧の各行の「削除」で取り除いてください。</p>
+        ${named && unnamed.length ? `<p class="note">事業名が空欄の行（表紙などの可能性があります。押すと確認欄に表示）：${pageLinks(unnamed.slice(0, 30))}${unnamed.length > 30 ? ` ほか${unnamed.length - 30}件` : ''}</p>` : ''}
+        ${msgHtml('adj')}
+      </div>
+    </div>
+    <button class="btn btn-o btn-sm" style="margin-top:6px" ${dis} onclick="setupClearProjects()">一覧をすべて削除する</button>`;
+}
+
+// 手順3：連続したページで事業名も補足も同じ事業（評価シートの2枚目以降を拾った可能性）をチェック式で削除する
+function adjSectionHtml(adj) {
+  const checked = adj.filter(a => setup.adjChecked[a.cur.uid] !== false).length;
+  return `<div class="dup-box" id="dup-adj">
+    <div class="dup-hd">連続したページに同じ事業（事業名${setup.projects.some(p => normName(p.sub)) ? 'も補足も' : 'が'}同じ）があります（${adj.length}件）</div>
+    <p class="note">1つの事業が複数ページにわたり、評価シートの2枚目以降も拾われた可能性があります。「表示」で確認欄にページを表示し、2枚目以降だったものにチェックを付けて削除してください。別々の事業だった場合はチェックを外してください。</p>
+    <table class="proj-tbl">
+      <thead><tr><th></th><th>事業名</th><th>ページ</th><th></th></tr></thead>
+      <tbody>${adj.map(a => `<tr data-uid="${a.cur.uid}">
+        <td style="width:28px"><input type="checkbox" ${setup.adjChecked[a.cur.uid] !== false ? 'checked' : ''} onchange="setup.adjChecked[${a.cur.uid}]=this.checked; renderSetup()"></td>
+        <td>${esc(a.cur.name)}</td>
+        <td style="white-space:nowrap">p.${a.cur.page}（直前：p.${a.prev.page}）</td>
+        <td><button class="btn btn-o btn-sm" style="white-space:nowrap" onclick="setupShowProject(${a.cur.uid}, true)">表示</button></td>
+      </tr>`).join('')}</tbody>
+    </table>
+    <div style="margin-top:8px">${actBtn('adj', `チェックした${checked}件を一覧から削除`, 'setupDeleteAdjChecked()', 'btn-h btn-full')}</div>
+  </div>`;
+}
+
+// 手順3：全事業の「補足」の列に、指定したラベルの値を取り出す（事業名は変えない）
+function subSectionHtml(distant) {
+  const withSub = setup.projects.filter(p => normName(p.sub)).length;
+  return `
+    <p class="note">事業名とは別の「補足」の列に、担当課や事業番号などを入れられます。評価ツールでは事業名の横に小さく表示され、住民が部署名などで絞り込むときにも使われます。同じ名前の事業を見分ける手がかりにもなります。同じ名前の別事業が連続したページに並んでいる場合も、補足（事業番号など）を入れておくと、次の手順3で2枚目以降の候補として誤って表示されなくなります。</p>
+    <p class="note">事業名と同じ方法で、${LABEL_HOW_IT_WORKS}<b>全事業</b>の補足の列に入れます（入れ直すと置き換わります。事業名は変わりません）。</p>
+    <ul class="note-list">
+      <li>読点（、）またはカンマで区切ると、複数の項目を「・」でつないで入れます。例：「担当部課、予算コード」→「危機管理部 防災安全課・09-01-01-50-01」</li>
+      <li>評価シートの表記どおりに入力してください。「部」「課」のような1文字のラベルでも、その文字だけで印字された小見出しがあれば、そちらが優先されます。</li>
+      <li>補足は、事業一覧の補足の列で直接入力・修正もできます。</li>
+    </ul>
+    <input type="text" id="sub-label-input" value="${esc(setup.distLabelText)}" placeholder="例：担当部課" oninput="setup.distLabelText=this.value" onkeydown="if(event.key==='Enter') setupExtractSub()">
+    ${actBtn('dist', `全事業の補足に取り出す（${setup.projects.length}件）`, 'setupExtractSub()', 'btn-o btn-full')}
+    ${withSub ? `<p class="note">補足が入っている事業：${withSub} / ${setup.projects.length}件　<button class="btn btn-o btn-sm" ${setup.busy ? 'disabled' : ''} onclick="setupClearSub()">補足をすべて消す</button></p>` : ''}
+    ${distant.length ? `<div class="dup-box" id="dup-dist">
+      <div class="dup-hd">事業名も補足も同じ事業があります（${distant.length}組）</div>
+      <p class="note">住民が見分けられるよう、補足に別の項目（事業番号など）を加えて取り出し直すか、事業一覧で補足を直接修正してください。このままでも書き出せます。</p>
+      <ul class="dup-list">${distant.map(g => `<li><b>${esc(g.name)}</b>${g.sub ? `（補足：${esc(g.sub)}）` : ''}：${g.items.map(p => `<a href="javascript:void(0)" onclick="setupShowProject(${p.uid}, true)">p.${p.page}</a>`).join('、')}</li>`).join('')}</ul>
+    </div>` : ''}`;
+}
+
+function exportHtml() {
+  const missingUrl = setup.files.filter(f => !f.url).length;
+  return `
+    ${missingUrl ? `<div class="warn-box">URLが未入力のPDFが${missingUrl}件あります（①）。その評価シートへのリンクは表示されず、ページ番号だけが表示されます。</div>` : ''}
+    ${setup.projects.length ? actBtn('export', '📥 評価ツール（HTML）を書き出す', 'setupExport()', 'btn-k btn-full') : '<button class="btn btn-k btn-full" disabled>📥 評価ツール（HTML）を書き出す</button>'}
+    ${msgHtml('export')}
+    ${setup.lastExportName && !(setup.msg && setup.msg.area === 'export') ? `<p class="note">前回の書き出し：${esc(setup.lastExportName)}（この画面で続けて修正して書き出し直しても、番号はずれません）　<button class="btn btn-o btn-sm" onclick="setup.step=3; renderSetup()">完了画面を見る</button></p>` : ''}
+    <p class="note">書き出すと完了画面に切り替わり、住民に使ってもらうまでの手順を表示します。</p>`;
+}
+
+// ========================================================================
+// ステップ3：書き出し後の完了画面（公開して住民にURLを共有するまでの案内）
+// ========================================================================
+function downloadHtml(filename, html) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function doneHtml() {
+  const e = setup.lastExport;
+  if (!e) return '<div class="card"><p>まだ書き出していません。</p><button class="btn btn-o" onclick="setup.step=2; renderSetup()">← 作業に戻る</button></div>';
+  return `
+  <div class="card done-card">
+    <h2>✅ 評価ツールを書き出しました</h2>
+    <table class="done-tbl">
+      <tr><th>ファイル</th><td><b>${esc(e.filename)}</b>（ダウンロードフォルダなどに保存されています）</td></tr>
+      <tr><th>タイトル</th><td>${esc(e.title)}</td></tr>
+      <tr><th>事業数</th><td>${e.count}事業</td></tr>
+      <tr><th>投票データの送信先</th><td>${e.own ? '自分のスプレッドシート' : '共有の送信先'}</td></tr>
+      <tr><th>識別キー（tool_id）</th><td>${esc(e.toolId)}</td></tr>
+    </table>
+    <div class="warn-box">このファイルは、あとで事業一覧を直したり、評価シートが差し替えられたときに作り直すために必要です。必ず保管してください（最初の画面の「前回作ったHTMLから作り直す」で読み込みます）。</div>
+  </div>
+
+  <div class="card">
+    <h2>次にやること：住民に使ってもらう</h2>
+    <ol class="guide-steps">
+      <li><b>書き出したファイルを開いて、見え方を確かめる</b><br>
+        <span class="note">ダウンロードしたファイルをブラウザで開くと、住民が使う評価画面が表示されます。試しに投票・コメントを送信すると、本物のデータとして記録されるので注意してください。</span></li>
+      <li><b>GitHub Pagesで公開する</b>（スマートフォンでもリンクを開くだけで使えるようになります）
+        <ol style="margin-left:18px">
+          <li>GitHubアカウントを作る：<a href="https://github.com/signup" target="_blank" rel="noopener">github.com/signup</a></li>
+          <li>新しいリポジトリを作る（Public）：<a href="https://github.com/new" target="_blank" rel="noopener">github.com/new</a></li>
+          <li>「Add file → Upload files」で、書き出したHTMLファイルをアップロードする</li>
+          <li>Settings → Pages で、Source を「Deploy from a branch」、Branch を「main」「/ (root)」にして保存する</li>
+          <li>数分後、<code>https://ユーザー名.github.io/リポジトリ名/${esc(e.filename)}</code> で開けるようになります</li>
+        </ol>
+        <span class="note">GitHub Pagesを使わず、ファイルを直接渡すこともできます。受け取った人はファイルを保存してからブラウザで開きます（スマートフォンではうまく開けないことがあります）。</span></li>
+      <li><b>公開したURLを住民に共有する</b><br>
+        <span class="note">修正版を書き出したときは、公開済みのファイルを同じ名前のまま上書きしてください。リンクも投票データもそのまま使えます。</span></li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <div class="done-btns">
+      <button class="btn btn-o" onclick="setup.step=2; setup.msg=null; renderSetup()">← 事業一覧の作業に戻る</button>
+      <button class="btn btn-o" onclick="setupDownloadAgain()">📥 もう一度書き出す</button>
+      <button class="btn btn-o" onclick="setupStartNew()">＋ 新しく作る</button>
+    </div>
+    <p class="note">作業に戻って直したあとに書き出し直しても、事業の番号は今回と同じものが引き継がれます。</p>
+  </div>`;
+}
+
+function setupDownloadAgain() {
+  const e = setup.lastExport;
+  if (e) downloadHtml(e.filename, e.html);
+}
+
+function setupStartNew() {
+  if (!confirm('最初の画面に戻ります。読み込んだPDFや事業一覧は消えます（書き出したファイルは残ります）。よろしいですか？')) return;
+  location.reload();
+}
+
+// ── PDFファイル ───────────────────────────────────
+// 複数のPDFをまとめて読み込む。すでに読み込み済みの同名ファイルは読み込まない
+async function setupLoadPdfFile(input) {
+  const picked = Array.from(input.files || []);
+  input.value = '';
+  if (!picked.length) return;
+  const dupNames = picked.filter(file => setup.files.some(f => f.filename === file.name && f.doc)).map(f => f.name);
+  const targets = picked.filter(file => !dupNames.includes(file.name));
+  if (!targets.length) {
+    showMsg('files', 'error', `選んだPDFはすべて読み込み済みです（${dupNames.map(esc).join('、')}）。`);
+    return;
+  }
+  runBusy('files', `PDFを読み込んでいます… 0 / ${targets.length}`, async () => {
+    const loaded = [], failed = [];
+    for (let k = 0; k < targets.length; k++) {
+      const file = targets[k];
+      setBusyText(`PDFを読み込んでいます… ${k + 1} / ${targets.length}（${file.name}）`);
+      await nextFrame();
+      let doc;
+      try { doc = await openPdf(await file.arrayBuffer()); }
+      catch (e) { failed.push(file.name); continue; }
+      // 引き継ぎで「再読込が必要」になっている同名ファイルがあれば、そこに割り当てる
+      let idx = setup.files.findIndex(f => f.filename === file.name && !f.doc);
+      if (idx >= 0) Object.assign(setup.files[idx], { doc, numPages: doc.numPages });
+      else {
+        setup.files.push({ fid: 'f' + (setup.nextFid++), filename: file.name, url: '', doc, numPages: doc.numPages });
+        idx = setup.files.length - 1;
+      }
+      loaded.push(`${esc(file.name)}（${doc.numPages}ページ）`);
+      if (setup.curFileIdx < 0 || !setup.files[setup.curFileIdx] || !setup.files[setup.curFileIdx].doc) { setup.curFileIdx = idx; setup.curPage = 1; }
+    }
+    let html = loaded.length ? `${loaded.length}件のPDFを読み込みました：${loaded.join('、')}` : 'PDFを読み込めませんでした。';
+    if (dupNames.length) html += `<br>読み込み済みのため読み込まなかったもの：${dupNames.map(esc).join('、')}`;
+    if (failed.length) html += `<br>PDFとして開けなかったもの：${failed.map(esc).join('、')}`;
+    if (loaded.length) html += `<br>各PDFのURLを入力し（下の「URLをまとめて貼り付ける」も使えます）、並び順を▲▼で市の公表順に整えてから、②に進んでください。`;
+    return { area: 'files', type: failed.length || !loaded.length ? 'info' : 'ok', html };
+  });
+}
+
+function setupMoveFile(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= setup.files.length) return;
+  const cur = setup.files[setup.curFileIdx];
+  [setup.files[i], setup.files[j]] = [setup.files[j], setup.files[i]];
+  setup.curFileIdx = setup.files.indexOf(cur);
+  setup.msg = null;
+  renderSetup();
+}
+
+function setupOpenFileUrl(i) {
+  const u = (setup.files[i].url || '').trim();
+  if (!/^https?:\/\//.test(u)) { showMsg('files', 'error', `「${esc(setup.files[i].filename)}」のURLが入力されていないか、http:// または https:// で始まっていません。`); return; }
+  window.open(u, '_blank', 'noopener');
+}
+
+function urlFileName(u) {
+  try { return decodeURIComponent(new URL(u).pathname.split('/').pop() || '').toLowerCase(); }
+  catch (e) { return ''; }
+}
+
+function setupApplyBulkUrls() {
+  const el = document.getElementById('bulk-url-input');
+  setup.bulkUrlText = el ? el.value : setup.bulkUrlText;
+  const urls = [...new Set((setup.bulkUrlText.match(/https?:\/\/[^\s"'<>]+/g) || []))];
+  if (!urls.length) { showMsg('files', 'error', 'URLが見つかりませんでした。http:// または https:// で始まるURLを、1行に1つずつ貼り付けてください。'); return; }
+  const matched = [], changed = [], unmatched = [];
+  urls.forEach(u => {
+    const name = urlFileName(u);
+    const f = name && setup.files.find(x => x.filename.toLowerCase() === name);
+    if (!f) { unmatched.push(u); return; }
+    if (f.url && f.url !== u) changed.push(f.filename);
+    f.url = u;
+    matched.push(f.filename);
+  });
+  const missing = setup.files.filter(f => !f.url).map(f => f.filename);
+  let html = `${matched.length}件のPDFにURLを設定しました。`;
+  if (changed.length) html += `<br>入力済みのURLを置き換えたもの：${changed.map(esc).join('、')}`;
+  if (unmatched.length) html += `<br>ファイル名が一致するPDFがなかったURL：<br>${unmatched.map(esc).join('<br>')}`;
+  html += missing.length
+    ? `<br>URLが未入力のPDF：${missing.map(esc).join('、')}（各行の欄に入力してください）`
+    : '<br>すべてのPDFにURLが入りました。念のため「🔗 開いて確認」で、同じPDFが開くか確かめてください。';
+  if (!unmatched.length) setup.bulkUrlText = '';
+  showMsg('files', missing.length || unmatched.length ? 'info' : 'ok', html);
+}
+
+async function setupReattachFile(i, input) {
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (file.name !== setup.files[i].filename && !confirm(`前回のファイル名（${setup.files[i].filename}）と異なります。このPDFで置き換えますか？`)) return;
+  runBusy('files', 'PDFを読み込んでいます…', async () => {
+    const doc = await openPdf(await file.arrayBuffer());
+    Object.assign(setup.files[i], { doc, numPages: doc.numPages, filename: file.name });
+    setup.curFileIdx = i;
+    setup.curPage = 1;
+    return { area: 'files', type: 'ok', html: `「${esc(file.name)}」（${doc.numPages}ページ）を読み込みました。` };
+  });
+}
+
+function setupSwitchFile(i) {
+  setup.curFileIdx = i;
+  setup.curPage = 1;
+  setup.msg = null;
+  renderSetup();
+}
+
+function setupRemoveFile(i) {
+  const f = setup.files[i];
+  const count = setup.projects.filter(p => p.fid === f.fid).length;
+  if (!confirm(`「${f.filename}」を削除しますか？${count ? `\nこのPDFの事業${count}件も一覧から削除されます。` : ''}`)) return;
+  setup.projects = setup.projects.filter(p => p.fid !== f.fid);
+  setup.files.splice(i, 1);
+  setup.curFileIdx = setup.files.findIndex(x => x.doc);
+  setup.curPage = 1;
+  showMsg('files', 'info', `「${esc(f.filename)}」を削除しました。`);
+}
+
+function setupGoKeyword() {
+  scrollToId('keyword-input');
+  setTimeout(() => { const el = document.getElementById('keyword-input'); if (el) { el.focus(); el.select(); } }, 400);
+}
+
+// ── 開始ページを探す ──────────────────────────────
+async function pageTextSorted(page) {
+  // 表示用：文字を見た目の上→下、左→右の順に並べ替える（PDF内部の描画順は見た目と一致しないため）。
+  // 探す処理（setupScanKeyword）はページ内の全文字を結合して含むかどうかだけを見るので、並び順の影響を受けない。
+  const tc = await page.getTextContent();
+  const items = tc.items
+    .filter(it => it.str && it.str.trim())
+    .map(it => ({ s: it.str, x: it.transform[4], y: it.transform[5], h: it.height || Math.abs(it.transform[3]) || 8 }))
+    .sort((a, b) => b.y - a.y);
+  // 同じ行とみなす縦のずれは、事業名などの取り出し（extractAfterLabel）と同じ基準（文字の高さの6割、最低3pt）。
+  // 表示と取り出しの基準を揃えないと、「同じ行の右隣」に見える文字と実際に取り出される文字が食い違う
+  // （例：武蔵野市は値がラベルより3.4pt低く描かれ、固定3ptだと次の行に表示されていた）。
+  const lines = [];
+  for (const it of items) {
+    const line = lines[lines.length - 1];
+    if (line && Math.abs(line.y - it.y) <= Math.max(3, line.h * 0.6)) line.items.push(it);
+    else lines.push({ y: it.y, h: it.h, items: [it] });
+  }
+  return lines.map(l => l.items.sort((a, b) => a.x - b.x).map(i => i.s.trim()).join('　')).join('\n');
+}
+
+// 読み込んだすべてのPDFで、探す文字を含むページを探して一覧を作る
+function setupScanKeyword() {
+  const kw = setup.keywordText.trim();
+  if (!kw) { showMsg('scan', 'error', '探す文字を入力してください。'); return; }
+  const files = setup.files.filter(f => f.doc);
+  if (!files.length) { showMsg('scan', 'error', '①でPDFを読み込んでください。'); return; }
+  const fids = new Set(files.map(f => f.fid));
+  const existing = setup.projects.filter(p => fids.has(p.fid));
+  const named = existing.filter(p => normName(p.name)).length;
+  if (existing.length && !confirm(`今の事業一覧（${existing.length}件）を、今回探した結果で置き換えます。${named ? `\n入力済みの事業名（${named}件）も消えます。` : ''}\nよろしいですか？`)) return;
+  const totalPages = files.reduce((n, f) => n + f.numPages, 0);
+  runBusy('scan', `探しています… 0 / ${totalPages}ページ`, async () => {
+    const found = new Map(); // fid -> [page...]
+    let done = 0;
+    for (const f of files) {
+      const pages = [];
+      for (let p = 1; p <= f.numPages; p++) {
+        const tc = await (await f.doc.getPage(p)).getTextContent();
+        if (tc.items.map(it => it.str).join('').includes(kw)) pages.push(p);
+        if (++done % 10 === 0) { setBusyText(`探しています… ${done} / ${totalPages}ページ${files.length > 1 ? `（${f.filename}）` : ''}`); await nextFrame(); }
+      }
+      found.set(f.fid, pages);
+    }
+    const total = [...found.values()].reduce((n, ps) => n + ps.length, 0);
+    if (!total) {
+      return { area: 'scan', type: 'error', html: `「${esc(kw)}」を含むページは見つかりませんでした（一覧は変更していません）。確認欄の[文字]で表示される文字と見比べ、文字が正しいか確認してください。画像として作られたPDFでは探せません。` };
+    }
+    setup.projects = setup.projects.filter(p => !fids.has(p.fid));
+    files.forEach(f => found.get(f.fid).forEach(page => setup.projects.push({ uid: setup.nextUid++, fid: f.fid, page, name: null })));
+    setup.adjChecked = {};
+    setup.listToTop = true;
+    const zero = files.filter(f => !found.get(f.fid).length).map(f => f.filename);
+    let html = `「${esc(kw)}」を含む<b>${total}ページ</b>を、各事業の1枚目として事業一覧（パソコンでは画面右下）に並べました。件数を確認し、下の「次にやること」に進んでください。`;
+    if (files.length > 1) html += `<br>PDFごとの件数：${files.map(f => `${esc(f.filename)} ${found.get(f.fid).length}件`).join('、')}`;
+    if (zero.length) html += `<br>⚠ 1件も見つからなかったPDF：${zero.map(esc).join('、')}（様式が違うか、文字が取り出せない可能性があります）`;
+    return { area: 'list', type: zero.length ? 'info' : 'ok', block: 'start', html };
+  });
+}
+
+function setupAddCurrentPage() {
+  const f = setup.files[setup.curFileIdx];
+  if (!f || setup.projects.some(p => p.fid === f.fid && p.page === setup.curPage)) return;
+  const uid = setup.nextUid++;
+  setup.projects.push({ uid, fid: f.fid, page: setup.curPage, name: null });
+  renderSetup();
+  const row = document.getElementById('row-' + uid);
+  if (row) { row.classList.add('flash'); scrollRowIntoList(row); }
+}
+function setupDetectBookmarks() {
+  const f = setup.files[setup.curFileIdx];
+  runBusy('alt', 'しおりを読み取っています…', async () => {
+    let outline;
+    try { outline = await f.doc.getOutline(); } catch (e) { outline = null; }
+    if (!outline || !outline.length) return { area: 'alt', type: 'error', html: 'このPDFにはしおり（ブックマーク）が見つかりませんでした。' };
+    const drafts = [];
+    for (const item of flattenOutline(outline)) {
+      try {
+        let dest = item.dest;
+        if (typeof dest === 'string') dest = await f.doc.getDestination(dest);
+        if (!dest) continue;
+        const pageIndex = await f.doc.getPageIndex(dest[0]);
+        drafts.push({ page: pageIndex + 1, name: item.title ? item.title.trim() : null });
+      } catch (e) { /* このしおりはスキップ */ }
+    }
+    if (!drafts.length) return { area: 'alt', type: 'error', html: 'しおりからページ情報を取得できませんでした。' };
+    let added = 0;
+    for (const d of drafts) {
+      if (setup.projects.some(p => p.fid === f.fid && p.page === d.page)) continue;
+      setup.projects.push({ uid: setup.nextUid++, fid: f.fid, page: d.page, name: d.name || null });
+      added++;
+    }
+    return { area: 'list', type: 'ok', block: 'start', html: `しおりから${added}件を一覧に追加しました${drafts.length - added ? `（${drafts.length - added}件は一覧にあるページのため追加していません）` : ''}。目次や章見出しのしおりが混ざっている場合は、各行の「削除」で取り除いてください。` };
+  });
+}
+function flattenOutline(items) {
+  let out = [];
+  for (const it of items) {
+    out.push(it);
+    if (it.items && it.items.length) out = out.concat(flattenOutline(it.items));
+  }
+  return out;
+}
+
+// ── 事業名 ───────────────────────────────────────
+// 開始ページで label を探し、描かれている位置（座標）を手がかりに値を取る。
+//   ①ラベルと同じ文字の塊の中で、ラベルの後ろに文字が続いていればそれ
+//   ②なければ、ラベルの右側で縦位置が重なる（許容＝文字の高さの6割、最低3pt）文字のうち、いちばん近いもの
+//   ③右側に何もなければ、ラベルの真下で横位置が重なる文字のうち、いちばん近いもの
+// PDF内部の描画順（見出しをまとめて先に描く様式が多い）には頼らない。
+// 10自治体の評価シートで検証済み（2026-10-05）。描画順で「直後」を取る旧方式は、西宮市・北本市・湖西市・聖籠町で全滅していた。
+// 見た目の行を固定幅（±3pt）で判定する方式は、値がラベルより少し低く描かれる武蔵野市で、隣の縦書き文字を拾ってしまうため不採用。
+async function extractAfterLabel(doc, pageNo, label) {
+  const tc = await (await doc.getPage(pageNo)).getTextContent();
+  const items = tc.items
+    .filter(it => typeof it.str === 'string' && it.str.trim())
+    .map(it => ({ s: it.str, x: it.transform[4], y: it.transform[5], w: it.width || 0, h: it.height || Math.abs(it.transform[3]) || 8 }));
+  // ラベルの探し方は優先順位付き：①塊全体がラベルと完全に一致 → ②ラベルで始まる → ③ラベルを含む。
+  // 「部」「課」のような短いラベルが「内部管理」「担当部署」の中の文字に当たる誤りを防ぐため（湖西市で発生）。
+  // 完全一致がない様式（「事業名：○○」のようにラベルと値が1つの塊等）にも②③で対応する。
+  // 同じ優先度で複数あるときは、ページのいちばん上（同じ高さなら左）のもの。
+  const byPos = (a, b) => b.y - a.y || a.x - b.x;
+  const lab = items.filter(i => i.s.trim() === label).sort(byPos)[0]
+    || items.filter(i => i.s.trim().startsWith(label)).sort(byPos)[0]
+    || items.filter(i => i.s.includes(label)).sort(byPos)[0];
+  if (!lab) return '';
+  const rest = lab.s.slice(lab.s.indexOf(label) + label.length).trim();
+  if (rest) return normName(rest);
+  const tol = Math.max(3, lab.h * 0.6);
+  const right = items
+    .filter(i => i !== lab && i.x > lab.x + lab.w - 1 && Math.abs(i.y - lab.y) <= tol)
+    .sort((a, b) => a.x - b.x)[0];
+  if (right) return normName(right.s);
+  const below = items
+    .filter(i => i.y < lab.y - 1 && i.y > lab.y - lab.h * 4 && i.x < lab.x + lab.w + 5 && i.x + i.w > lab.x - 5)
+    .sort((a, b) => b.y - a.y)[0];
+  return below ? normName(below.s) : '';
+}
+function fileOfProject(p) { return setup.files.find(f => f.fid === p.fid); }
+
+function setupExtractNames() {
+  const label = setup.labelText.trim();
+  if (!label) { showMsg('list', 'error', 'ラベルを入力してください（一覧の下の「次にやること」）。', 'start'); return; }
+  const named = setup.projects.filter(p => normName(p.name)).length;
+  if (named && !confirm(`入力済みの事業名（${named}件）は、取り出した名前で上書きされます。よろしいですか？`)) return;
+  const targets = sortedProjects();
+  runBusy('names', `事業名を取り出しています… 0 / ${targets.length}件`, async () => {
+    let updated = 0, noDoc = 0;
+    const failed = [];
+    for (let i = 0; i < targets.length; i++) {
+      const p = targets[i];
+      const f = fileOfProject(p);
+      if (!f || !f.doc) { noDoc++; continue; }
+      const v = await extractAfterLabel(f.doc, p.page, label);
+      if (v) { p.name = v; updated++; } else failed.push(p.page);
+      if (i % 10 === 9) { setBusyText(`事業名を取り出しています… ${i + 1} / ${targets.length}件`); await nextFrame(); }
+    }
+    setup.adjChecked = {};
+    setup.listToTop = true;
+    const { adj, distant } = analyzeDuplicates();
+    // 結果は一覧の上に表示し、一覧を上から確認できるようにする
+    let html = `${targets.length}件中<b>${updated}件</b>の事業名を取り出しました。事業一覧（パソコンでは画面右下）を確認してください。`;
+    if (failed.length) html += `<br>次のページでは「${esc(label)}」が見つからず、取り出せませんでした（事業一覧で直接入力してください）：p.${failed.slice(0, 20).join('、p.')}${failed.length > 20 ? ` ほか${failed.length - 20}件` : ''}`;
+    if (noDoc) html += `<br>PDFが読み込まれていないため、${noDoc}件は対象外でした（①で再読込してください）。`;
+    if (adj.length || distant.length) html += `<br>同じ名前の事業があります。<a href="javascript:void(0)" onclick="scrollToId('dups-anchor', 'start')">手順2・3へ ↓</a>`;
+    return { area: 'list', type: (failed.length || noDoc || adj.length || distant.length) ? 'info' : 'ok', block: 'start', html };
+  });
+}
+
+function setupDeleteAdjChecked() {
+  const { adj } = analyzeDuplicates();
+  const remove = new Set(adj.filter(a => setup.adjChecked[a.cur.uid] !== false).map(a => a.cur.uid));
+  if (!remove.size) { showMsg('adj', 'error', '削除する事業にチェックを付けてください。'); return; }
+  setup.projects = setup.projects.filter(p => !remove.has(p.uid));
+  setup.adjChecked = {};
+  const left = analyzeDuplicates();
+  showMsg('adj', 'ok', `${remove.size}件を一覧から削除しました（現在${setup.projects.length}件）。${left.adj.length ? `連続したページの同名事業がまだ${left.adj.length}件あります（チェックを外したもの等）。` : ''}`);
+}
+
+// 全事業の補足を、指定したラベル（複数可）の値で入れ直す
+function setupExtractSub() {
+  const labels = setup.distLabelText.split(/[、,，]/).map(s => s.trim()).filter(Boolean);
+  if (!labels.length) { showMsg('dist', 'error', '補足に入れる項目のラベルを入力してください（例：担当部課）。'); return; }
+  const had = setup.projects.filter(p => normName(p.sub)).length;
+  if (had && !confirm(`入力済みの補足（${had}件）は、取り出した内容で置き換わります。よろしいですか？`)) return;
+  const targets = sortedProjects();
+  runBusy('dist', `補足を取り出しています… 0 / ${targets.length}件`, async () => {
+    let filled = 0, noDoc = 0;
+    const failed = [];
+    for (let i = 0; i < targets.length; i++) {
+      const p = targets[i];
+      const f = fileOfProject(p);
+      if (!f || !f.doc) { noDoc++; continue; }
+      const vals = [];
+      for (const label of labels) {
+        const v = await extractAfterLabel(f.doc, p.page, label);
+        if (v) vals.push(v);
+      }
+      p.sub = vals.join('・');
+      if (vals.length) filled++; else failed.push(p.page);
+      if (i % 10 === 9) { setBusyText(`補足を取り出しています… ${i + 1} / ${targets.length}件`); await nextFrame(); }
+    }
+    const remain = analyzeDuplicates().distant.length;
+    let html = `${targets.length}件中<b>${filled}件</b>の補足を入れました（${labels.map(esc).join('・')}）。`;
+    if (failed.length) html += `<br>次のページでは取り出せませんでした（事業一覧で直接入力できます）：p.${failed.slice(0, 20).join('、p.')}${failed.length > 20 ? ` ほか${failed.length - 20}件` : ''}`;
+    if (noDoc) html += `<br>PDFが読み込まれていないため、${noDoc}件は対象外でした（①で再読込してください）。`;
+    html += remain ? `<br>事業名も補足も同じ事業が${remain}組残っています。` : '';
+    return { area: 'dist', type: (remain || failed.length || noDoc) ? 'info' : 'ok', html };
+  });
+}
+function setupClearSub() {
+  if (!confirm('すべての事業の補足を消しますか？')) return;
+  setup.projects.forEach(p => { p.sub = ''; });
+  showMsg('dist', 'info', '補足をすべて消しました。');
+}
+
+// ── 一覧の編集 ───────────────────────────────────
+function findProject(uid) { return setup.projects.find(x => x.uid === uid); }
+function setupUpdateProjectName(uid, val) {
+  const p = findProject(uid);
+  if (!p) return;
+  p.name = val.trim() || null;
+  // ここで再描画すると、次の入力欄へ移ったフォーカスが外れるため行わない（重複表示などは次の操作で更新される）
+}
+function setupUpdateProjectSub(uid, val) {
+  const p = findProject(uid);
+  if (p) p.sub = val.trim();
+}
+
+function setupDeleteProject(uid) {
+  const p = findProject(uid);
+  if (!p || !confirm(`p.${p.page}「${p.name || '(事業名未設定)'}」を一覧から削除しますか？`)) return;
+  setup.projects = setup.projects.filter(x => x.uid !== uid);
+  renderSetup();
+}
+function setupClearProjects() {
+  if (!confirm(`一覧の${setup.projects.length}件をすべて削除しますか？${setup.inherit ? '\n（引き継ぎは維持されます。作り直した事業は、事業名が前回と同じなら前回の番号が付きます）' : ''}`)) return;
+  setup.projects = [];
+  showMsg('list', 'info', '一覧をすべて削除しました。②で探し直してください。', 'start');
+}
+// 行（または同名事業の案内のリンク）を押したとき：確認欄にその事業の評価シートを表示する。
+// fromLeft は左側の作業欄から押した場合。狭い画面では確認欄が上にあるので、そこへ移動する
+function setupShowProject(uid, fromLeft) {
+  const p = findProject(uid);
+  if (!p) return;
+  const idx = setup.files.findIndex(f => f.fid === p.fid);
+  if (idx < 0 || !setup.files[idx].doc) {
+    showMsg('list', 'error', 'この事業のPDFは読み込まれていません。①で再読込してください。', 'start');
+    return;
+  }
+  if (idx !== setup.curFileIdx) {
+    setup.curFileIdx = idx;
+    setup.curPage = p.page;
+    renderSetup();
+  } else {
+    setup.curPage = p.page;
+    updateSide();
+  }
+  if (fromLeft) {
+    highlightCurrentRows(true);
+    if (isNarrow()) scrollToId('side', 'start');
+  }
+}
+// ── 書き出し ─────────────────────────────────────
+function setupExport() {
+  if (!setup.projects.length) return;
+  const { adj, distant } = analyzeDuplicates();
+  const unnamed = setup.projects.filter(p => !normName(p.name)).length;
+  const notes = [];
+  if (adj.length) notes.push(`・連続したページに同じ名前の事業が${adj.length}件あります（2ページ目以降を拾っている可能性）`);
+  if (distant.length) notes.push(`・事業名も補足も同じ事業が${distant.length}組あります`);
+  if (unnamed) notes.push(`・事業名が空欄の事業が${unnamed}件あります（「事業 No.○」と表示され、作り直しの際に前回の投票を引き継げません）`);
+  if (notes.length && !confirm(`次の点が残っていますが、このまま書き出しますか？\n${notes.join('\n')}`)) return;
+
+  if (setup.destMode === 'own') {
+    const fmt = gasUrlFormatError(setup.ownGasUrl.trim());
+    if (fmt) { showMsg('dest', 'error', '送信先：' + esc(fmt)); return; }
+    const ok = setup.destCheck && setup.destCheck.ok && setup.destCheck.url === setup.ownGasUrl.trim();
+    if (!ok && !confirm('自分のスプレッドシートへの接続確認がまだ済んでいません（④）。このまま書き出しますか？')) return;
+  }
+
+  runBusy('export', '書き出しています…', async () => {
+    const { list, result, nextNo } = computeNumbers();
+    const fileIndex = {};
+    setup.files.forEach((f, i) => { fileIndex[f.fid] = i; });
+    const seireki = Number(setup.reiwa) + 2018;
+    const data = {
+      v: DATA_VERSION,
+      tool_id: setup.toolId,
+      title: setup.title,
+      pref_code: setup.prefCode,
+      muni_code: setup.muniCode,
+      muni_name: setup.muniName,
+      reiwa: setup.reiwa,
+      source_url: setup.sourceUrl || '',
+      gas_url: currentGasUrl(),
+      generated_at: new Date().toISOString(),
+      files: setup.files.map(f => ({ name: f.filename, url: f.url || '' })),
+      projects: list.map(p => {
+        const o = { no: result.get(p.uid).no, name: normName(p.name) || null, f: fileIndex[p.fid], page: p.page };
+        const sub = normName(p.sub);
+        if (sub) o.sub = sub;
+        return o;
+      }),
+      next_no: nextNo
+    };
+
+    // 事業名に「<」（閉じタグ等）が含まれていても、書き出したHTMLのscript要素が途中で終わらないようにエスケープする
+    const json = JSON.stringify(data).replace(/</g, String.fromCharCode(92) + 'u003c');
+    // 注意：このscript要素の中に閉じタグの文字列をそのまま書くと、HTML上でここで要素が終わってしまうため分割して書く
+    const CLOSE_SCRIPT = '<' + '/script>';
+    const tpl = document.getElementById('eval-template').textContent;
+    const html = tpl
+      .replace('__TITLE__', () => esc(setup.title))
+      .replace('/*DATA_BEGIN*/null/*DATA_END*/', () => '/*DATA_BEGIN*/' + json + '/*DATA_END*/')
+      .split('<' + String.fromCharCode(92) + '/script>').join(CLOSE_SCRIPT);
+
+    const filename = `jimujigyou_${setup.muniCode}_${seireki}.html`;
+    downloadHtml(filename, html);
+
+    // 以後この画面で書き出し直しても番号がずれないよう、今回の書き出し内容を引き継ぎ元にする
+    setup.inherit = data;
+    setup.importedGasUrl = data.gas_url;
+    setup.lastExportName = filename;
+    setup.lastExport = { filename, html, title: data.title, count: data.projects.length, own: setup.destMode === 'own', toolId: data.tool_id };
+    // 書き出したら完了画面に切り替える
+    setup.step = 3;
+    setup.msg = null;
+    return null;
+  });
+}
+</script>
+</body>
+</html>
