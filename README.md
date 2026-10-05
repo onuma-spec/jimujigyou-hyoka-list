@@ -5,6 +5,8 @@
 - 作成ツール：https://onuma-spec.github.io/jimujigyou-hyoka-list/
 - 公開例（静岡県湖西市 令和7年度）：https://onuma-spec.github.io/jimujigyou-hyoka-list/jimujigyou_22221_2025.html
 
+書き出した評価ツールは、自治体が公表している評価シートをもとに民間で作成するもので、自治体の公式なものではありません。評価ツールの見出しとフッターにも、その旨が自動で表示されます。
+
 要約や分類は行いません。評価の判断材料は、自治体が公表している評価シートそのものです。書き出す評価ツールにはPDFを含めず、各事業から自治体サイトの評価シートの該当ページへリンクします。
 
 ## 使い方
@@ -34,7 +36,10 @@
 | `gas/Code.gs` | 投票・コメントを受け付けるGoogle Apps Script |
 | `gas/公開手順.md` | 上記を自分のスプレッドシートで公開する手順 |
 
-## ライセンス
+## ライセンス・出典
 MIT License（`LICENSE` を参照）
+
+- PDFの読み込みに [PDF.js](https://mozilla.github.io/pdf.js/)（Mozilla, Apache License 2.0）を使用しています（配布元から読み込み、本リポジトリには同梱していません）
+- 市区町村コード：総務省「全国地方公共団体コード」
 
 本ツールは、Claude（AI）を用いて作成しています。

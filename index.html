@@ -196,6 +196,7 @@ body{font-family:"Meiryo","Hiragino Sans",sans-serif;background:#f3f4f6;color:#1
 .hd{background:#1e40af;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:8px}
 .hd h1{font-size:1rem;font-weight:700}
 .hd .sub{font-size:.76rem;opacity:.85;margin-top:2px}
+.hd .unofficial{font-size:.68rem;opacity:.8;margin-top:4px;border-top:1px solid rgba(255,255,255,.3);padding-top:4px}
 .panel{background:#fff;border-radius:8px;padding:10px 12px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
 .note{font-size:.76rem;color:#6b7280;line-height:1.6}
 .btn{display:inline-block;padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:.88rem;font-weight:600;text-align:center;text-decoration:none;font-family:inherit}
@@ -331,14 +332,20 @@ function pendingCommentNos() { return PROJECTS.filter(p => drafts[p.no] && draft
 // ========================================================================
 // 画面
 // ========================================================================
+// 自治体の公式なツールと誤解されないよう、民間が作成した非公式のものであることを見出しとフッターに必ず表示する
+function unofficialText() {
+  const m = DATA.muni_name || '自治体';
+  return `この評価ツールは、${m}が公表している評価シートをもとに、民間で作成したものです。${m}の公式なものではありません。`;
+}
 function headerHtml(sub) {
-  return `<div class="hd"><h1>${esc(DATA.title)}</h1><div class="sub">${esc(sub)}</div></div>`;
+  return `<div class="hd"><h1>${esc(DATA.title)}</h1><div class="sub">${esc(sub)}</div><div class="unofficial">${esc(unofficialText())}</div></div>`;
 }
 function footHtml() {
   return `<div class="foot">
     ${DATA.source_url ? `<p><strong>出典：</strong><a href="${esc(DATA.source_url)}" target="_blank" rel="noopener" style="overflow-wrap:anywhere">${esc(DATA.source_url)}</a></p>` : ''}
     <p>評価の判断材料は、自治体が公表している評価シートです。本ツールは事業の一覧と投票の機能だけを提供しています。</p>
     <p>評価とコメントは、送信するまでこの端末にだけ保存されます。送信した評価は、あとから変更できます（送信したコメントは修正・削除できません）。</p>
+    <p><strong>${esc(unofficialText())}</strong></p>
     <p>この評価ツールは、<a href="https://onuma-spec.github.io/jimujigyou-hyoka-list/" target="_blank" rel="noopener">事務事業評価 事業一覧ツール作成</a>で作成しました。どなたでも、ほかの自治体の評価ツールを作れます。</p>
     <p>本ツールは、Claude（AI）を用いて作成しています。　ツールのライセンス：MIT</p>
   </div>`;
@@ -882,6 +889,7 @@ function randomId(len) {
 
 function footerHtml() {
   return `<div class="pdf-footer">
+    <p>市区町村コード：総務省「全国地方公共団体コード」</p>
     <p>PDFの読み込みには PDF.js（Mozilla, Apache License 2.0）を使用しています。読み込んだPDFはこの端末の中だけで処理され、どこにも送信されません。</p>
     <p>本ツールは、Claude（AI）を用いて作成しています。　ツールのライセンス：MIT　｜　<a href="https://github.com/onuma-spec/jimujigyou-hyoka-list" target="_blank" rel="noopener">ソースコード（GitHub）</a></p>
   </div>`;
