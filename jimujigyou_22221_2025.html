@@ -138,6 +138,7 @@ PROJECTS.forEach((p, i) => { BY_NO[p.no] = p; p.idx = i; });
 
 let agg = null;        // 事業No -> {good, bad}（みんなの集計。送信済みの分）
 let comments = null;   // 事業No -> [{id, comment}]
+let commentsFailed = false;  // コメントの取得に失敗したか（件数は「-」のまま表示する）
 let screen = 'list', curNo = null;
 let filter = '', sortKey = 'page', searchText = '';
 let listScroll = 0, sending = false;
@@ -360,7 +361,9 @@ function saveDraft(no, text) {
 }
 
 function commentListHtml(no) {
-  if (!comments) return '<p class="note">読み込み中...</p>';
+  if (!comments) return commentsFailed
+    ? '<p class="note">コメントを読み込めませんでした。時間をおいてページを開き直してください。</p>'
+    : '<p class="note">読み込み中...</p>';
   const list = comments[no] || [];
   if (!list.length) return '<p class="note">まだコメントがありません。</p>';
   return list.map(c => `<div class="comment-item">
@@ -391,7 +394,8 @@ async function loadComments() {
     const map = {};
     (json.comments || []).forEach(c => { (map[c.event_no] = map[c.event_no] || []).push(c); });
     comments = map;
-  } catch (e) { comments = comments || {}; }
+    commentsFailed = false;
+  } catch (e) { commentsFailed = true; /* 前回取得した分があればそのまま。なければ件数は「-」のまま */ }
   repaintCounts();
 }
 // 件数が届いたら、今の画面の件数表示を更新する（スクロール位置は保つ）
