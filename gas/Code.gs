@@ -83,6 +83,10 @@ function appendRows_(name, makeRows) {
   }
 }
 
+// 「=」「+」「-」「@」で始まる文字列はシートに数式として書き込まれるため、先頭に ' を付けて文字列として保存する
+// （' はセルの表示にも getValues() の値にも含まれない）
+function asText_(s) { return /^[=+\-@]/.test(s) ? "'" + s : s; }
+
 function validToolId_(s) { return typeof s === 'string' && /^[0-9a-z_]{5,60}$/.test(s); }
 function validVoterId_(s) { return typeof s === 'string' && /^[0-9a-z]{8,40}$/.test(s); }
 
@@ -141,7 +145,7 @@ function doGet(e) {
       if (comment.length > COMMENT_MAX_LENGTH) return jsonOut_({ ok: false, error: 'comment too long' });
       if (containsPii_(comment)) return jsonOut_({ ok: false, error: 'pii detected' });
       var crow = appendRows_(COMMENTS_SHEET, function (nextId, now) {
-        return [[nextId(), toolId, eventNo, comment, now]];
+        return [[nextId(), toolId, eventNo, asText_(comment), now]];
       });
       return jsonOut_({ ok: true, id: crow[0][0] });
     }
