@@ -745,8 +745,11 @@ loadComments();
 <!-- 自分のスプレッドシート用のGASコード（④の「コードをコピー」で使う）。gas/Code.gs と同じ内容。
      Code.gs を修正したら、sync_gas_code.py を実行してここを更新すること -->
 <script type="text/plain" id="gas-code">
+/** @OnlyCurrentDoc */
 /**
  * 事務事業評価 事業一覧ツール（評価画面）専用 GAS+Sheets バックエンド
+ * 先頭の @OnlyCurrentDoc で、権限を「このスプレッドシートだけ」に絞っている
+ * （ないと Google ドライブのすべてのスプレッドシートを読み書きできる権限で動く）。
  *
  * 既存の事務事業優先度評価ツール（v3・10自治体）のGASとは別物。
  * 評価は 👍good／👎bad の2択で、端末ごとのランダムな識別番号（voter_id）を使い、
